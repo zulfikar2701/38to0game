@@ -42,8 +42,7 @@ export function PlayerCard({ player, isSelectable, onSelect, isBlind }: PlayerCa
         <h3 className="text-xl font-bold text-white">{player.name}</h3>
         <div className="flex flex-wrap gap-2 text-sm text-gray-300">
           <span className="rounded-md bg-gray-800 px-2 py-0.5">{player.club}</span>
-          <span className="rounded-md bg-gray-800 px-2 py-0.5">{player.era}</span>
-          <span className="rounded-md bg-gray-800 px-2 py-0.5">Peak: {player.peakSeason}</span>
+          <span className="rounded-md bg-gray-800 px-2 py-0.5">{player.season}</span>
         </div>
 
         {!isBlind ? (

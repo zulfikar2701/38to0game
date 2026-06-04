@@ -61,7 +61,6 @@ function getNormalizedValues(stats: PositionStats): { values: number[] } {
         Math.min(s.goals / 60, 1),
         Math.min(s.assists / 60, 1),
         Math.min(s.shots / 300, 1),
-        Math.min(s.conversionRate / 30, 1),
       ],
     }
   }

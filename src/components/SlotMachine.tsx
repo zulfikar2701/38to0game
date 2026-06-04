@@ -1,51 +1,63 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { ClubEraCombo } from '../data/combos'
+import type { ClubSeasonCombo } from '../data/combos'
 
 interface SlotMachineProps {
-  combo: ClubEraCombo | null
+  combo: ClubSeasonCombo | null
   isSpinning: boolean
   onSpinComplete?: () => void
 }
 
 const ALL_CLUBS = [
-  'Real Madrid',
-  'Barcelona',
-  'Manchester United',
   'Liverpool',
-  'Bayern Munich',
-  'Juventus',
-  'AC Milan',
-  'Ajax',
+  'Man City',
+  'Chelsea',
+  'Arsenal',
+  'Spurs',
+  'Man Utd',
+  'Newcastle',
+  'Brighton',
+  'Aston Villa',
+  'West Ham',
+  'Leicester',
+  'Everton',
+  'Crystal Palace',
+  'Brentford',
+  'Wolves',
+  'Fulham',
+  'Bournemouth',
+  'Burnley',
 ]
 
-const ALL_ERAS = [
-  '1950s',
-  '1960s',
-  '1970s',
-  '1980s',
-  '1990s',
-  '2000s',
-  '2010s',
-  '2020s',
+const ALL_SEASONS = [
+  '2015-16',
+  '2016-17',
+  '2017-18',
+  '2018-19',
+  '2019-20',
+  '2020-21',
+  '2021-22',
+  '2022-23',
+  '2023-24',
+  '2024-25',
+  '2025-26',
 ]
 
 export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachineProps) {
-  const [display, setDisplay] = useState({ club: '-', era: '-' })
+  const [display, setDisplay] = useState({ club: '-', season: '-' })
   const iterationRef = useRef(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (isSpinning) {
       iterationRef.current = 0
-      setDisplay({ club: '-', era: '-' })
 
       intervalRef.current = setInterval(() => {
         iterationRef.current += 1
 
         const randomClub = ALL_CLUBS[Math.floor(Math.random() * ALL_CLUBS.length)]
-        const randomEra = ALL_ERAS[Math.floor(Math.random() * ALL_ERAS.length)]
-        setDisplay({ club: randomClub, era: randomEra })
+        const randomSeason = ALL_SEASONS[Math.floor(Math.random() * ALL_SEASONS.length)]
+        setDisplay({ club: randomClub, season: randomSeason })
 
         if (iterationRef.current >= 20) {
           if (intervalRef.current) {
@@ -53,7 +65,7 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
             intervalRef.current = null
           }
           if (combo) {
-            setDisplay({ club: combo.club, era: combo.era })
+            setDisplay({ club: combo.club, season: combo.season })
           }
           onSpinComplete?.()
         }
@@ -93,14 +105,14 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
         <div className="flex-1 text-center">
           <AnimatePresence mode="wait">
             <motion.span
-              key={display.era}
+              key={display.season}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.05 }}
               className="text-2xl font-bold text-white block"
             >
-              {display.era}
+              {display.season}
             </motion.span>
           </AnimatePresence>
         </div>

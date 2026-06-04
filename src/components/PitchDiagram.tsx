@@ -4,6 +4,9 @@ import type { Formation } from '../types/game'
 interface Props {
   formation: Formation
   isAnimating?: boolean
+  selectedPlayerId: string | null
+  onSlotClick?: (index: number) => void
+  onSlotRemove?: (index: number) => void
 }
 
 const positionColors: Record<string, string> = {
@@ -27,9 +30,15 @@ const dotPositions = [
   { x: 225, y: 100, pos: 'FWD' },
 ]
 
-export function PitchDiagram({ formation, isAnimating = false }: Props) {
+export function PitchDiagram({
+  formation,
+  isAnimating = false,
+  selectedPlayerId,
+  onSlotClick,
+  onSlotRemove,
+}: Props) {
   return (
-    <div className="w-full max-w-md mx-auto aspect-[3/4] bg-green-900 rounded-lg overflow-hidden border border-green-700 relative">
+    <div className="w-full max-w-md mx-auto aspect-[3/4] bg-green-900 rounded-lg overflow-hidden border border-green-700 relative select-none">
       <svg viewBox="0 0 300 400" className="w-full h-full">
         {/* Field background */}
         <rect x="0" y="0" width="300" height="400" fill="#14532d" />
@@ -53,18 +62,32 @@ export function PitchDiagram({ formation, isAnimating = false }: Props) {
           const slot = formation[i]
           const isFilled = slot?.player !== null
           const color = isFilled ? positionColors[dot.pos] : '#6B7280'
-          const label = isFilled ? slot.player!.name : dot.pos
+          const label = isFilled
+            ? slot.player!.name.split(' ').slice(-1)[0]
+            : dot.pos
+
+          const isClickable = !isFilled && selectedPlayerId !== null
 
           const circle = (
-            <g key={i}>
+            <g
+              key={i}
+              onClick={() => {
+                if (isFilled && onSlotRemove) {
+                  onSlotRemove(i)
+                } else if (isClickable && onSlotClick) {
+                  onSlotClick(i)
+                }
+              }}
+              style={{ cursor: isFilled || isClickable ? 'pointer' : 'default' }}
+            >
               <circle
                 cx={dot.x}
                 cy={dot.y}
-                r={isFilled ? 22 : 18}
+                r={isFilled ? 24 : 20}
                 fill={color}
-                stroke="white"
-                strokeWidth={isFilled ? 2 : 1}
-                opacity={isFilled ? 1 : 0.6}
+                stroke={isClickable ? '#FBBF24' : 'white'}
+                strokeWidth={isClickable ? 3 : isFilled ? 2 : 1}
+                opacity={isFilled ? 1 : 0.5}
               />
               <text
                 x={dot.x}
@@ -72,12 +95,25 @@ export function PitchDiagram({ formation, isAnimating = false }: Props) {
                 textAnchor="middle"
                 dominantBaseline="central"
                 fill="white"
-                fontSize={isFilled ? 8 : 10}
+                fontSize={isFilled ? 9 : 10}
                 fontWeight="bold"
                 fontFamily="system-ui, sans-serif"
               >
-                {label.length > 10 ? label.split(' ').map(w => w[0]).join('') : label}
+                {label.length > 8 ? label.substring(0, 7) + '...' : label}
               </text>
+              {isFilled && (
+                <text
+                  x={dot.x}
+                  y={dot.y + 14}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fill="rgba(255,255,255,0.7)"
+                  fontSize={7}
+                  fontFamily="system-ui, sans-serif"
+                >
+                  {slot.player!.club}
+                </text>
+              )}
             </g>
           )
 

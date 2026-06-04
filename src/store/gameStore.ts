@@ -7,8 +7,8 @@ import type {
   Player,
   SimulationResult,
 } from '../types/game'
-import type { ClubEraCombo } from '../data/combos'
-import { samplePlayers } from '../data/samplePlayers'
+import type { ClubSeasonCombo } from '../data/combos'
+import { players } from '../data/players'
 import {
   buildCombos,
   getPlayersForCombo,
@@ -16,7 +16,7 @@ import {
 } from '../data/combos'
 import { aggregateSquad } from '../engine/aggregation'
 import { runFullSimulation } from '../engine/simulation'
-import { generateCommentary } from '../engine/narrative'
+import { generateSeasonCommentary } from '../engine/narrative'
 
 export function createEmptyFormation(): Formation {
   return [
@@ -50,19 +50,24 @@ interface GameState {
   round: number
   formation: Formation
   skipsRemaining: number
-  currentCombo: ClubEraCombo | null
+  currentCombo: ClubSeasonCombo | null
   availablePlayers: Player[]
   usedPlayers: Set<string>
   simulationResult: SimulationResult | null
-  combos: ClubEraCombo[]
+  combos: ClubSeasonCombo[]
+  selectedPlayerId: string | null
+  hoveredSlotIndex: number | null
 
   startGame: (mode: GameMode) => void
   spinSlot: () => void
   useSkip: () => void
-  pickPlayer: (playerId: string) => void
+  selectPlayer: (playerId: string) => void
+  assignPlayerToSlot: (slotIndex: number) => void
+  removePlayerFromSlot: (slotIndex: number) => void
   confirmSquad: () => void
   runSimulation: () => void
   resetGame: () => void
+  setHoveredSlot: (index: number | null) => void
 }
 
 const initialState = {
@@ -71,11 +76,13 @@ const initialState = {
   round: 1,
   formation: createEmptyFormation(),
   skipsRemaining: 1,
-  currentCombo: null as ClubEraCombo | null,
+  currentCombo: null as ClubSeasonCombo | null,
   availablePlayers: [] as Player[],
   usedPlayers: new Set<string>(),
   simulationResult: null as SimulationResult | null,
-  combos: buildCombos(samplePlayers),
+  combos: buildCombos(players),
+  selectedPlayerId: null as string | null,
+  hoveredSlotIndex: null as number | null,
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -92,6 +99,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       availablePlayers: [],
       usedPlayers: new Set<string>(),
       simulationResult: null,
+      selectedPlayerId: null,
+      hoveredSlotIndex: null,
     })
     get().spinSlot()
   },
@@ -100,7 +109,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { formation, usedPlayers, combos } = get()
     const openPositions = getOpenPositions(formation)
     const validCombos = combos.filter((combo) =>
-      hasSelectablePlayers(samplePlayers, combo, usedPlayers, openPositions),
+      hasSelectablePlayers(players, combo, usedPlayers, openPositions),
     )
 
     if (validCombos.length === 0) {
@@ -110,14 +119,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const randomCombo =
       validCombos[Math.floor(Math.random() * validCombos.length)]
-    const players = getPlayersForCombo(
-      samplePlayers,
+    const available = getPlayersForCombo(
+      players,
       randomCombo,
       usedPlayers,
       openPositions,
     )
 
-    set({ currentCombo: randomCombo, availablePlayers: players })
+    set({ currentCombo: randomCombo, availablePlayers: available, selectedPlayerId: null })
   },
 
   useSkip: () => {
@@ -128,21 +137,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  pickPlayer: (playerId: string) => {
-    const { availablePlayers, formation, usedPlayers, round } = get()
-    const player = availablePlayers.find((p) => p.id === playerId)
+  selectPlayer: (playerId: string) => {
+    set({ selectedPlayerId: playerId })
+  },
+
+  assignPlayerToSlot: (slotIndex: number) => {
+    const { selectedPlayerId, availablePlayers, formation, usedPlayers, round } = get()
+    if (!selectedPlayerId) return
+
+    const player = availablePlayers.find((p) => p.id === selectedPlayerId)
     if (!player) return
 
-    const newFormation = formation.map((slot) => ({ ...slot })) as Formation
-    for (const slot of newFormation) {
-      if (slot.position === player.position && slot.player === null) {
-        slot.player = player
-        break
-      }
-    }
+    const slot = formation[slotIndex]
+    if (!slot || slot.player !== null || slot.position !== player.position) return
+
+    const newFormation = formation.map((s, i) =>
+      i === slotIndex ? { ...s, player } : { ...s },
+    ) as Formation
 
     const newUsedPlayers = new Set(usedPlayers)
-    newUsedPlayers.add(playerId)
+    newUsedPlayers.add(player.id)
 
     if (round >= 11) {
       set({
@@ -151,15 +165,39 @@ export const useGameStore = create<GameState>((set, get) => ({
         phase: 'confirming',
         currentCombo: null,
         availablePlayers: [],
+        selectedPlayerId: null,
       })
     } else {
       set({
         formation: newFormation,
         usedPlayers: newUsedPlayers,
         round: round + 1,
+        selectedPlayerId: null,
       })
       get().spinSlot()
     }
+  },
+
+  removePlayerFromSlot: (slotIndex: number) => {
+    const { formation, usedPlayers, round } = get()
+    const slot = formation[slotIndex]
+    if (!slot || !slot.player) return
+
+    const newFormation = formation.map((s, i) =>
+      i === slotIndex ? { ...s, player: null } : { ...s },
+    ) as Formation
+
+    const newUsedPlayers = new Set(usedPlayers)
+    newUsedPlayers.delete(slot.player.id)
+
+    set({
+      formation: newFormation,
+      usedPlayers: newUsedPlayers,
+      round: Math.max(1, round - 1),
+      phase: 'drafting',
+      selectedPlayerId: null,
+    })
+    get().spinSlot()
   },
 
   confirmSquad: () => {
@@ -168,13 +206,22 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   runSimulation: () => {
     const { formation } = get()
-    const pillars = aggregateSquad(formation)
-    const result = runFullSimulation(pillars)
-    result.commentary = generateCommentary(pillars)
+    const agg = aggregateSquad(formation)
+    const result = runFullSimulation(agg.pillars)
+    result.squadStrength = agg.squadStrength
+    result.seasonCommentary = generateSeasonCommentary(
+      agg.pillars,
+      result.finalPosition,
+      result.finalPoints,
+    )
     set({ simulationResult: result, phase: 'results' })
   },
 
   resetGame: () => {
     set({ ...initialState })
+  },
+
+  setHoveredSlot: (index: number | null) => {
+    set({ hoveredSlotIndex: index })
   },
 }))

@@ -1,29 +1,29 @@
-import type { Player, Position, Era } from '../types/game'
+import type { Player, Position } from '../types/game'
 
-export interface ClubEraCombo {
+export interface ClubSeasonCombo {
   club: string
-  era: Era
+  season: string
 }
 
-export function buildCombos(players: Player[]): ClubEraCombo[] {
-  const combos = new Map<string, ClubEraCombo>()
+export function buildCombos(players: Player[]): ClubSeasonCombo[] {
+  const combos = new Map<string, ClubSeasonCombo>()
   for (const player of players) {
-    const key = `${player.club}::${player.era}`
-    combos.set(key, { club: player.club, era: player.era })
+    const key = `${player.club}::${player.season}`
+    combos.set(key, { club: player.club, season: player.season })
   }
   return Array.from(combos.values())
 }
 
 export function getPlayersForCombo(
   players: Player[],
-  combo: ClubEraCombo,
+  combo: ClubSeasonCombo,
   usedPlayers: Set<string>,
   openPositions: Position[],
 ): Player[] {
   return players.filter(
     (p) =>
       p.club === combo.club &&
-      p.era === combo.era &&
+      p.season === combo.season &&
       !usedPlayers.has(p.id) &&
       openPositions.includes(p.position),
   )
@@ -31,7 +31,7 @@ export function getPlayersForCombo(
 
 export function hasSelectablePlayers(
   players: Player[],
-  combo: ClubEraCombo,
+  combo: ClubSeasonCombo,
   usedPlayers: Set<string>,
   openPositions: Position[],
 ): boolean {

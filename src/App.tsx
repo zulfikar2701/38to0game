@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from './store/gameStore'
 import { SlotMachine } from './components/SlotMachine'
-import { PlayerPool } from './components/PlayerPool'
-import { SkipButton } from './components/SkipButton'
+import { PlayerList } from './components/PlayerList'
 import { PitchDiagram } from './components/PitchDiagram'
-import { SimulationScreen } from './components/SimulationScreen'
-import { ShareCard } from './components/ShareCard'
+import { ResultScreen } from './components/ResultScreen'
+import { SkipButton } from './components/SkipButton'
 import type { GameMode } from './types/game'
 
 const pageVariants = {
@@ -18,17 +17,19 @@ const pageVariants = {
 function App() {
   const {
     phase,
-    mode,
     round,
     skipsRemaining,
     currentCombo,
     availablePlayers,
     formation,
     simulationResult,
+    selectedPlayerId,
     startGame,
     spinSlot,
     useSkip,
-    pickPlayer,
+    selectPlayer,
+    assignPlayerToSlot,
+    removePlayerFromSlot,
     confirmSquad,
     runSimulation,
     resetGame,
@@ -48,32 +49,16 @@ function App() {
     setTimeout(() => runSimulation(), 500)
   }
 
-  const handleResultComplete = () => {
-    // SimulationScreen onComplete - store already transitions to results
-  }
-
-  const getResultText = () => {
-    if (!simulationResult) return ''
-    const wins = [simulationResult.league, simulationResult.domesticCup, simulationResult.continentalCup].filter(Boolean).length
-    if (wins === 3) return 'TREBLE!'
-    if (wins === 2) return 'DOUBLE!'
-    if (wins === 1) return 'SINGLE TROPHY!'
-    return 'NO TROPHIES'
-  }
-
-  const getResultColor = () => {
-    if (!simulationResult) return 'text-gray-400'
-    const wins = [simulationResult.league, simulationResult.domesticCup, simulationResult.continentalCup].filter(Boolean).length
-    if (wins === 3) return 'text-treble-gold'
-    if (wins === 2) return 'text-green-500'
-    if (wins === 1) return 'text-blue-400'
-    return 'text-gray-400'
+  const handlePlayAgain = () => {
+    resetGame()
+    startGame('classic')
   }
 
   return (
     <div className="min-h-screen bg-treble-bg text-white overflow-hidden">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-6">
         <AnimatePresence mode="wait">
+          {/* MENU */}
           {phase === 'menu' && (
             <motion.div
               key="menu"
@@ -84,8 +69,9 @@ function App() {
               className="flex flex-col items-center justify-center min-h-[80vh] gap-8"
             >
               <div className="text-center">
-                <h1 className="text-6xl font-bold text-treble-gold mb-4">Treble Draft</h1>
-                <p className="text-xl text-gray-400">Build an all-time XI. Chase the treble.</p>
+                <h1 className="text-6xl font-bold text-treble-gold mb-2">38-0</h1>
+                <p className="text-xl text-gray-400">Draft an all-time XI. Chase the perfect season.</p>
+                <p className="text-sm text-gray-500 mt-2">Premier League Edition · 2015–2026</p>
               </div>
 
               <div className="flex flex-col gap-4 w-full max-w-sm">
@@ -122,6 +108,7 @@ function App() {
             </motion.div>
           )}
 
+          {/* DRAFTING */}
           {phase === 'drafting' && (
             <motion.div
               key="drafting"
@@ -129,10 +116,10 @@ function App() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="flex flex-col gap-6"
+              className="flex flex-col gap-4"
             >
               <div className="flex justify-between items-center">
-                <div className="text-2xl font-bold">
+                <div className="text-xl font-bold">
                   Round <span className="text-treble-gold">{round}</span>/11
                 </div>
                 <SkipButton
@@ -157,16 +144,33 @@ function App() {
                 </button>
               )}
 
-              {currentCombo && !isSpinning && availablePlayers.length > 0 && (
-                <PlayerPool
-                  players={availablePlayers}
-                  onSelect={pickPlayer}
-                  isBlind={mode === 'blind'}
-                />
+              {currentCombo && !isSpinning && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  <PlayerList
+                    players={availablePlayers}
+                    selectedPlayerId={selectedPlayerId}
+                    onSelect={selectPlayer}
+                    currentCombo={currentCombo}
+                  />
+                  <div className="flex flex-col gap-4">
+                    <PitchDiagram
+                      formation={formation}
+                      selectedPlayerId={selectedPlayerId}
+                      onSlotClick={assignPlayerToSlot}
+                      onSlotRemove={removePlayerFromSlot}
+                    />
+                    <div className="text-center text-sm text-gray-400">
+                      {selectedPlayerId
+                        ? 'Click an empty slot to assign the selected player'
+                        : 'Select a player from the list, then click a slot to assign'}
+                    </div>
+                  </div>
+                </div>
               )}
             </motion.div>
           )}
 
+          {/* CONFIRMING */}
           {phase === 'confirming' && (
             <motion.div
               key="confirming"
@@ -177,28 +181,40 @@ function App() {
               className="flex flex-col items-center gap-8"
             >
               <h2 className="text-3xl font-bold text-treble-gold">Your Squad</h2>
-              <PitchDiagram formation={formation} isAnimating={true} />
+              <PitchDiagram
+                formation={formation}
+                isAnimating={true}
+                selectedPlayerId={null}
+              />
               <button
                 onClick={handleConfirm}
                 className="px-8 py-4 bg-treble-gold text-treble-bg font-bold text-xl rounded-lg hover:bg-yellow-400 transition-colors"
               >
-                Confirm Squad & Simulate
+                Confirm Squad & Simulate Season
               </button>
             </motion.div>
           )}
 
-          {phase === 'simulating' && simulationResult && (
+          {/* SIMULATING */}
+          {phase === 'simulating' && (
             <motion.div
               key="simulating"
               variants={pageVariants}
               initial="initial"
               animate="animate"
               exit="exit"
+              className="flex flex-col items-center justify-center min-h-[60vh] gap-6"
             >
-              <SimulationScreen result={simulationResult} onComplete={handleResultComplete} />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
+                className="w-16 h-16 border-4 border-treble-gold border-t-transparent rounded-full"
+              />
+              <p className="text-xl text-gray-400">Simulating 38-game season...</p>
             </motion.div>
           )}
 
+          {/* RESULTS */}
           {phase === 'results' && simulationResult && (
             <motion.div
               key="results"
@@ -206,29 +222,8 @@ function App() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="flex flex-col items-center gap-8"
             >
-              <h2 className={`text-5xl font-bold ${getResultColor()}`}>
-                {getResultText()}
-              </h2>
-
-              <div className="flex flex-col gap-2 text-center text-gray-300">
-                {simulationResult.commentary.map((line, i) => (
-                  <p key={i}>{line}</p>
-                ))}
-              </div>
-
-              <ShareCard formation={formation} result={simulationResult} />
-
-              <button
-                onClick={() => {
-                  resetGame()
-                  startGame('classic')
-                }}
-                className="px-8 py-4 bg-treble-gold text-treble-bg font-bold text-xl rounded-lg hover:bg-yellow-400 transition-colors"
-              >
-                Try Again
-              </button>
+              <ResultScreen result={simulationResult} onPlayAgain={handlePlayAgain} />
             </motion.div>
           )}
         </AnimatePresence>

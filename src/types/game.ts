@@ -1,9 +1,5 @@
 export type Position = 'GK' | 'DEF' | 'MID' | 'FWD'
 
-export type Era =
-  | '1950s' | '1960s' | '1970s' | '1980s'
-  | '1990s' | '2000s' | '2010s' | '2020s'
-
 export interface GKStats {
   saves: number
   cleanSheets: number
@@ -29,7 +25,6 @@ export interface FWDStats {
   goals: number
   assists: number
   shots: number
-  conversionRate: number
 }
 
 export type PositionStats = GKStats | DEFStats | MIDStats | FWDStats
@@ -38,9 +33,9 @@ export interface Player {
   id: string
   name: string
   club: string
-  era: Era
+  season: string
   position: Position
-  peakSeason: string
+  appearances: number
   stats: PositionStats
   eraAdjusted: PositionStats
 }
@@ -58,14 +53,39 @@ export type Formation = [
   SquadSlot, SquadSlot, SquadSlot, // FWD
 ]
 
+export interface MatchResult {
+  gameweek: number
+  opponent: string
+  home: boolean
+  goalsFor: number
+  goalsAgainst: number
+  result: 'W' | 'D' | 'L'
+  points: number
+  commentary: string
+}
+
+export interface LeagueTeam {
+  name: string
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  gf: number
+  ga: number
+  gd: number
+  points: number
+}
+
 export interface SimulationResult {
-  league: boolean
-  domesticCup: boolean
-  continentalCup: boolean
-  teamAttack: number
-  teamDefense: number
-  teamControl: number
-  commentary: string[]
+  squadStrength: number
+  finalPoints: number
+  finalPosition: number
+  totalGoalsFor: number
+  totalGoalsAgainst: number
+  matches: MatchResult[]
+  leagueTable: LeagueTeam[]
+  seasonCommentary: string[]
+  verdict: string
 }
 
 export type GamePhase =
@@ -81,7 +101,7 @@ export interface DraftState {
   round: number // 1-11
   formation: Formation
   skipsRemaining: number
-  currentCombo: { club: string; era: Era } | null
+  currentCombo: { club: string; season: string } | null
   availablePlayers: Player[]
   usedPlayers: Set<string>
 }
