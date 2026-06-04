@@ -15,7 +15,6 @@ import {
   hasSelectablePlayers,
 } from '../data/combos'
 import { aggregateSquad } from '../engine/aggregation'
-import type { TeamPillars } from '../engine/aggregation'
 import { runFullSimulation } from '../engine/simulation'
 import { generateCommentary } from '../engine/narrative'
 
