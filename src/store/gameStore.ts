@@ -56,7 +56,7 @@ interface GameState {
   simulationResult: SimulationResult | null
   combos: ClubSeasonCombo[]
   selectedPlayerId: string | null
-  hoveredSlotIndex: number | null
+  hasSpun: boolean
 
   startGame: (mode: GameMode) => void
   spinSlot: () => void
@@ -67,7 +67,6 @@ interface GameState {
   confirmSquad: () => void
   runSimulation: () => void
   resetGame: () => void
-  setHoveredSlot: (index: number | null) => void
 }
 
 const initialState = {
@@ -82,7 +81,7 @@ const initialState = {
   simulationResult: null as SimulationResult | null,
   combos: buildCombos(players),
   selectedPlayerId: null as string | null,
-  hoveredSlotIndex: null as number | null,
+  hasSpun: false,
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -100,9 +99,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       usedPlayers: new Set<string>(),
       simulationResult: null,
       selectedPlayerId: null,
-      hoveredSlotIndex: null,
+      hasSpun: false,
     })
-    get().spinSlot()
   },
 
   spinSlot: () => {
@@ -113,7 +111,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     )
 
     if (validCombos.length === 0) {
-      set({ currentCombo: null, availablePlayers: [] })
+      set({ currentCombo: null, availablePlayers: [], hasSpun: true })
       return
     }
 
@@ -126,7 +124,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       openPositions,
     )
 
-    set({ currentCombo: randomCombo, availablePlayers: available, selectedPlayerId: null })
+    set({
+      currentCombo: randomCombo,
+      availablePlayers: available,
+      selectedPlayerId: null,
+      hasSpun: true,
+    })
   },
 
   useSkip: () => {
@@ -166,6 +169,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         currentCombo: null,
         availablePlayers: [],
         selectedPlayerId: null,
+        hasSpun: false,
       })
     } else {
       set({
@@ -173,8 +177,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         usedPlayers: newUsedPlayers,
         round: round + 1,
         selectedPlayerId: null,
+        currentCombo: null,
+        availablePlayers: [],
+        hasSpun: false,
       })
-      get().spinSlot()
     }
   },
 
@@ -196,8 +202,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       round: Math.max(1, round - 1),
       phase: 'drafting',
       selectedPlayerId: null,
+      currentCombo: null,
+      availablePlayers: [],
+      hasSpun: false,
     })
-    get().spinSlot()
   },
 
   confirmSquad: () => {
@@ -219,9 +227,5 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   resetGame: () => {
     set({ ...initialState })
-  },
-
-  setHoveredSlot: (index: number | null) => {
-    set({ hoveredSlotIndex: index })
   },
 }))

@@ -9,42 +9,19 @@ interface SlotMachineProps {
 }
 
 const ALL_CLUBS = [
-  'Liverpool',
-  'Man City',
-  'Chelsea',
-  'Arsenal',
-  'Spurs',
-  'Man Utd',
-  'Newcastle',
-  'Brighton',
-  'Aston Villa',
-  'West Ham',
-  'Leicester',
-  'Everton',
-  'Crystal Palace',
-  'Brentford',
-  'Wolves',
-  'Fulham',
-  'Bournemouth',
-  'Burnley',
+  'Liverpool', 'Man City', 'Chelsea', 'Arsenal', 'Spurs', 'Man Utd',
+  'Newcastle', 'Brighton', 'Aston Villa', 'West Ham', 'Leicester',
+  'Everton', 'Crystal Palace', 'Brentford', 'Wolves', 'Fulham',
+  'Bournemouth', 'Burnley', 'Southampton', 'Watford', 'Leeds',
 ]
 
 const ALL_SEASONS = [
-  '2015-16',
-  '2016-17',
-  '2017-18',
-  '2018-19',
-  '2019-20',
-  '2020-21',
-  '2021-22',
-  '2022-23',
-  '2023-24',
-  '2024-25',
-  '2025-26',
+  '2015-16', '2016-17', '2017-18', '2018-19', '2019-20',
+  '2020-21', '2021-22', '2022-23', '2023-24', '2024-25',
 ]
 
 export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachineProps) {
-  const [display, setDisplay] = useState({ club: '-', season: '-' })
+  const [display, setDisplay] = useState({ club: '—', season: '—' })
   const iterationRef = useRef(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -54,7 +31,6 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
 
       intervalRef.current = setInterval(() => {
         iterationRef.current += 1
-
         const randomClub = ALL_CLUBS[Math.floor(Math.random() * ALL_CLUBS.length)]
         const randomSeason = ALL_SEASONS[Math.floor(Math.random() * ALL_SEASONS.length)]
         setDisplay({ club: randomClub, season: randomSeason })
@@ -69,7 +45,7 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
           }
           onSpinComplete?.()
         }
-      }, 75)
+      }, 70)
     }
 
     return () => {
@@ -83,34 +59,34 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
   const isLocked = combo && !isSpinning
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="bg-treble-surface rounded-xl border border-gray-700 p-6 flex items-center justify-center gap-4 min-w-[320px]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="bg-38-surface rounded-lg border border-38-border px-8 py-5 flex items-center justify-center gap-6 min-w-[280px]">
         <div className="flex-1 text-center">
           <AnimatePresence mode="wait">
             <motion.span
               key={display.club}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.05 }}
-              className="text-2xl font-bold text-white block"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.04 }}
+              className="text-xl font-semibold text-white block tracking-tight"
             >
               {display.club}
             </motion.span>
           </AnimatePresence>
         </div>
 
-        <span className="text-2xl font-bold text-yellow-400">|</span>
+        <span className="text-xl text-38-muted font-light">|</span>
 
         <div className="flex-1 text-center">
           <AnimatePresence mode="wait">
             <motion.span
               key={display.season}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.05 }}
-              className="text-2xl font-bold text-white block"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.04 }}
+              className="text-xl font-semibold text-white block tracking-tight"
             >
               {display.season}
             </motion.span>
@@ -119,13 +95,13 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
       </div>
 
       {isLocked && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mt-3 px-4 py-1 rounded-full bg-yellow-400/10 border border-yellow-400 text-yellow-400 text-sm font-bold tracking-wider"
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-xs font-medium text-38-muted uppercase tracking-widest"
         >
-          LOCKED IN
-        </motion.div>
+          Locked
+        </motion.span>
       )}
     </div>
   )

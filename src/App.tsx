@@ -9,9 +9,9 @@ import { SkipButton } from './components/SkipButton'
 import type { GameMode } from './types/game'
 
 const pageVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.4 } },
+  exit: { opacity: 0, transition: { duration: 0.3 } },
 }
 
 function App() {
@@ -24,6 +24,7 @@ function App() {
     formation,
     simulationResult,
     selectedPlayerId,
+    hasSpun,
     startGame,
     spinSlot,
     useSkip,
@@ -46,7 +47,7 @@ function App() {
 
   const handleConfirm = () => {
     confirmSquad()
-    setTimeout(() => runSimulation(), 500)
+    setTimeout(() => runSimulation(), 800)
   }
 
   const handlePlayAgain = () => {
@@ -54,9 +55,11 @@ function App() {
     startGame('classic')
   }
 
+  const filledCount = formation.filter((s) => s.player !== null).length
+
   return (
-    <div className="min-h-screen bg-treble-bg text-white overflow-hidden">
-      <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-38-bg text-38-text font-sans selection:bg-38-gold/30">
+      <div className="max-w-5xl mx-auto px-6 py-10">
         <AnimatePresence mode="wait">
           {/* MENU */}
           {phase === 'menu' && (
@@ -66,43 +69,43 @@ function App() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="flex flex-col items-center justify-center min-h-[80vh] gap-8"
+              className="flex flex-col items-center justify-center min-h-[80vh] gap-10"
             >
-              <div className="text-center">
-                <h1 className="text-6xl font-bold text-treble-gold mb-2">38-0</h1>
-                <p className="text-xl text-gray-400">Draft an all-time XI. Chase the perfect season.</p>
-                <p className="text-sm text-gray-500 mt-2">Premier League Edition · 2015–2026</p>
+              <div className="text-center space-y-3">
+                <h1 className="text-7xl font-bold tracking-tight text-white">38-0</h1>
+                <p className="text-lg text-38-muted">Draft an all-time XI. Chase the perfect season.</p>
+                <p className="text-sm text-38-muted/60">Premier League · 2015–2025</p>
               </div>
 
-              <div className="flex flex-col gap-4 w-full max-w-sm">
-                <div className="flex gap-2">
+              <div className="flex flex-col gap-4 w-full max-w-xs">
+                <div className="flex gap-3">
                   <button
                     onClick={() => setSelectedMode('classic')}
-                    className={`flex-1 py-3 rounded-lg border-2 font-bold transition-all ${
+                    className={`flex-1 py-2.5 rounded border text-sm font-medium transition-all ${
                       selectedMode === 'classic'
-                        ? 'border-treble-gold bg-treble-gold/20 text-treble-gold'
-                        : 'border-gray-700 text-gray-400 hover:border-gray-500'
+                        ? 'border-white/30 bg-white/5 text-white'
+                        : 'border-38-border text-38-muted hover:border-white/20'
                     }`}
                   >
                     Classic
                   </button>
                   <button
                     onClick={() => setSelectedMode('blind')}
-                    className={`flex-1 py-3 rounded-lg border-2 font-bold transition-all ${
+                    className={`flex-1 py-2.5 rounded border text-sm font-medium transition-all ${
                       selectedMode === 'blind'
-                        ? 'border-treble-gold bg-treble-gold/20 text-treble-gold'
-                        : 'border-gray-700 text-gray-400 hover:border-gray-500'
+                        ? 'border-white/30 bg-white/5 text-white'
+                        : 'border-38-border text-38-muted hover:border-white/20'
                     }`}
                   >
-                    Blind Draft
+                    Blind
                   </button>
                 </div>
 
                 <button
                   onClick={() => startGame(selectedMode)}
-                  className="w-full py-4 bg-treble-gold text-treble-bg font-bold text-xl rounded-lg hover:bg-yellow-400 transition-colors"
+                  className="w-full py-3.5 bg-white text-38-bg font-semibold text-base rounded hover:bg-white/90 transition-colors"
                 >
-                  Start Game
+                  Start Draft
                 </button>
               </div>
             </motion.div>
@@ -116,56 +119,95 @@ function App() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="flex flex-col gap-4"
+              className="flex flex-col gap-6"
             >
-              <div className="flex justify-between items-center">
-                <div className="text-xl font-bold">
-                  Round <span className="text-treble-gold">{round}</span>/11
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-38-border pb-4">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-38-muted">Round</span>
+                  <span className="text-2xl font-bold text-white">{round}</span>
+                  <span className="text-sm text-38-muted">/ 11</span>
                 </div>
-                <SkipButton
-                  skipsRemaining={skipsRemaining}
-                  onSkip={useSkip}
-                  disabled={isSpinning || skipsRemaining === 0}
-                />
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-38-muted">{filledCount}/11 picked</span>
+                  <SkipButton
+                    skipsRemaining={skipsRemaining}
+                    onSkip={useSkip}
+                    disabled={isSpinning || skipsRemaining === 0 || !hasSpun}
+                  />
+                </div>
               </div>
 
+              {/* Slot Machine */}
               <SlotMachine
                 combo={currentCombo}
                 isSpinning={isSpinning}
                 onSpinComplete={() => setIsSpinning(false)}
               />
 
-              {!currentCombo && !isSpinning && (
-                <button
+              {/* Spin Button */}
+              {!hasSpun && !isSpinning && (
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   onClick={handleSpin}
-                  className="w-full py-4 bg-treble-gold text-treble-bg font-bold text-xl rounded-lg hover:bg-yellow-400 transition-colors"
+                  className="w-full py-4 bg-white text-38-bg font-semibold text-lg rounded hover:bg-white/90 transition-colors tracking-wide"
                 >
                   SPIN
-                </button>
+                </motion.button>
               )}
 
-              {currentCombo && !isSpinning && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {/* Player Selection + Formation */}
+              {hasSpun && !isSpinning && currentCombo && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
+                >
                   <PlayerList
                     players={availablePlayers}
                     selectedPlayerId={selectedPlayerId}
                     onSelect={selectPlayer}
                     currentCombo={currentCombo}
                   />
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-6">
                     <PitchDiagram
                       formation={formation}
                       selectedPlayerId={selectedPlayerId}
                       onSlotClick={assignPlayerToSlot}
                       onSlotRemove={removePlayerFromSlot}
                     />
-                    <div className="text-center text-sm text-gray-400">
+                    <p className="text-center text-xs text-38-muted">
                       {selectedPlayerId
-                        ? 'Click an empty slot to assign the selected player'
-                        : 'Select a player from the list, then click a slot to assign'}
-                    </div>
+                        ? 'Click an empty slot to assign'
+                        : 'Select a player, then click a slot'}
+                    </p>
                   </div>
-                </div>
+                </motion.div>
+              )}
+
+              {/* Post-pick: waiting for next spin */}
+              {hasSpun && !isSpinning && !currentCombo && round <= 11 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center gap-6 py-8"
+                >
+                  <PitchDiagram
+                    formation={formation}
+                    selectedPlayerId={null}
+                    onSlotRemove={removePlayerFromSlot}
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleSpin}
+                    className="px-12 py-3.5 bg-white text-38-bg font-semibold rounded hover:bg-white/90 transition-colors"
+                  >
+                    SPIN NEXT ROUND
+                  </motion.button>
+                </motion.div>
               )}
             </motion.div>
           )}
@@ -178,19 +220,20 @@ function App() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="flex flex-col items-center gap-8"
+              className="flex flex-col items-center gap-8 py-8"
             >
-              <h2 className="text-3xl font-bold text-treble-gold">Your Squad</h2>
+              <h2 className="text-2xl font-semibold text-white">Your Squad</h2>
               <PitchDiagram
                 formation={formation}
                 isAnimating={true}
                 selectedPlayerId={null}
+                onSlotRemove={removePlayerFromSlot}
               />
               <button
                 onClick={handleConfirm}
-                className="px-8 py-4 bg-treble-gold text-treble-bg font-bold text-xl rounded-lg hover:bg-yellow-400 transition-colors"
+                className="px-10 py-3.5 bg-white text-38-bg font-semibold rounded hover:bg-white/90 transition-colors"
               >
-                Confirm Squad & Simulate Season
+                Simulate Season
               </button>
             </motion.div>
           )}
@@ -207,10 +250,10 @@ function App() {
             >
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
-                className="w-16 h-16 border-4 border-treble-gold border-t-transparent rounded-full"
+                transition={{ repeat: Infinity, duration: 2.5, ease: 'linear' }}
+                className="w-12 h-12 border-2 border-white/30 border-t-white rounded-full"
               />
-              <p className="text-xl text-gray-400">Simulating 38-game season...</p>
+              <p className="text-38-muted text-sm tracking-wide">Simulating 38 games...</p>
             </motion.div>
           )}
 

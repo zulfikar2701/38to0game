@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import type { Player } from '../types/game'
 import { isFWDStats, isMIDStats, isDEFStats, isGKStats } from '../engine/aggregation'
 
@@ -21,13 +20,13 @@ const POSITION_LABELS: Record<string, string> = {
 function formatStats(player: Player): string {
   const stats = player.stats
   if (isFWDStats(stats)) {
-    return `${stats.goals}G ${stats.assists}A`
+    return `${stats.goals}G · ${stats.assists}A · ${stats.shots}Sh`
   }
   if (isMIDStats(stats)) {
-    return `${stats.goals}G ${stats.assists}A`
+    return `${stats.goals}G · ${stats.assists}A · ${stats.keyPasses.toFixed(1)}KP`
   }
   if (isDEFStats(stats)) {
-    return `${stats.tackles.toFixed(1)}Tkl ${stats.interceptions.toFixed(1)}Int`
+    return `${stats.tackles.toFixed(1)}Tkl`
   }
   if (isGKStats(stats)) {
     return `${stats.cleanSheets}CS`
@@ -45,56 +44,55 @@ export function PlayerList({ players, selectedPlayerId, onSelect, currentCombo }
   }
 
   return (
-    <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-2">
+    <div className="flex flex-col gap-5">
       {currentCombo && (
-        <div className="text-sm text-gray-400 mb-1">
-          Showing players from <span className="text-white font-semibold">{currentCombo.club}</span>{' '}
-          <span className="text-yellow-400">{currentCombo.season}</span>
+        <div className="text-sm text-38-muted">
+          {currentCombo.club} <span className="text-white/40">·</span> {currentCombo.season}
         </div>
       )}
 
-      {Array.from(grouped.entries()).map(([pos, posPlayers]) => (
-        <div key={pos} className="flex flex-col gap-2">
-          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            {POSITION_LABELS[pos]}
-          </h4>
-          {posPlayers.map((player) => {
-            const isSelected = selectedPlayerId === player.id
-            return (
-              <motion.button
-                key={player.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onSelect(player.id)}
-                className={[
-                  'w-full text-left rounded-lg border px-3 py-2.5 transition-all',
-                  isSelected
-                    ? 'bg-white/10 border-yellow-400/60'
-                    : 'bg-treble-surface/50 border-gray-700 hover:border-gray-500',
-                ].join(' ')}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-white">{player.name}</span>
-                    <span className="text-xs text-gray-400">
-                      {player.club} &middot; {player.season}
+      <div className="flex flex-col gap-5 max-h-[65vh] overflow-y-auto pr-1">
+        {Array.from(grouped.entries()).map(([pos, posPlayers]) => (
+          <div key={pos} className="flex flex-col gap-1.5">
+            <h4 className="text-[10px] font-semibold text-38-muted uppercase tracking-wider">
+              {POSITION_LABELS[pos]} · {posPlayers.length}
+            </h4>
+            {posPlayers.map((player) => {
+              const isSelected = selectedPlayerId === player.id
+              return (
+                <button
+                  key={player.id}
+                  onClick={() => onSelect(player.id)}
+                  className={[
+                    'w-full text-left rounded-md border px-3 py-2 transition-all',
+                    isSelected
+                      ? 'bg-white/5 border-white/20'
+                      : 'border-transparent hover:bg-white/[0.02] hover:border-white/10',
+                  ].join(' ')}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-medium text-white truncate">{player.name}</span>
+                      <span className="text-[11px] text-38-muted truncate">
+                        {player.club} · {player.appearances} apps
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-38-muted whitespace-nowrap">
+                      {formatStats(player)}
                     </span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs font-mono text-gray-300">{formatStats(player)}</span>
-                  </div>
-                </div>
-              </motion.button>
-            )
-          })}
-        </div>
-      ))}
+                </button>
+              )
+            })}
+          </div>
+        ))}
 
-      {players.length === 0 && (
-        <div className="text-center text-gray-500 py-8 text-sm">
-          No players available for this combination.
-        </div>
-      )}
+        {players.length === 0 && (
+          <div className="text-center text-38-muted py-8 text-sm">
+            No players available.
+          </div>
+        )}
+      </div>
     </div>
   )
 }
