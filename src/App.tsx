@@ -58,6 +58,20 @@ function App() {
 
   const filledCount = formation.filter((s) => s.player !== null).length
 
+  const selectedPlayer = selectedPlayerId
+    ? availablePlayers.find((p) => p.id === selectedPlayerId)
+    : null
+  const selectedRole = selectedPlayer?.role ?? null
+
+  const roleSlotText: Record<string, string> = {
+    GK: 'GK',
+    CB: 'CB',
+    FB: 'LB / RB',
+    CM: 'CM',
+    W: 'LW / RW',
+    ST: 'ST',
+  }
+
   return (
     <div className="min-h-screen bg-38-bg text-38-text font-sans selection:bg-38-gold/30">
       <div className="max-w-5xl mx-auto px-6 py-10">
@@ -147,70 +161,68 @@ function App() {
                 onSpinComplete={() => setIsSpinning(false)}
               />
 
-              {/* Spin Button */}
-              {!hasSpun && !isSpinning && (
-                <motion.button
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  onClick={handleSpin}
-                  className="w-full py-4 bg-white text-38-bg font-semibold text-lg rounded hover:bg-white/90 transition-colors tracking-wide"
-                >
-                  SPIN
-                </motion.button>
-              )}
+              {/* Main Layout: always split-screen during drafting */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                {/* Left Panel */}
+                <div className="flex flex-col gap-4">
+                  {/* Show player list when combo is active */}
+                  {currentCombo && !isSpinning && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <PlayerList
+                        players={availablePlayers}
+                        selectedPlayerId={selectedPlayerId}
+                        onSelect={selectPlayer}
+                        currentCombo={currentCombo}
+                      />
+                    </motion.div>
+                  )}
 
-              {/* Player Selection + Formation */}
-              {hasSpun && !isSpinning && currentCombo && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
-                >
-                  <PlayerList
-                    players={availablePlayers}
-                    selectedPlayerId={selectedPlayerId}
-                    onSelect={selectPlayer}
-                    currentCombo={currentCombo}
-                  />
-                  <div className="flex flex-col gap-6">
-                    <PitchDiagram
-                      formation={formation}
-                      selectedPlayerId={selectedPlayerId}
-                      onSlotClick={assignPlayerToSlot}
-                      onSlotRemove={removePlayerFromSlot}
-                    />
-                    <p className="text-center text-xs text-38-muted">
-                      {selectedPlayerId
-                        ? 'Click an empty slot to assign'
-                        : 'Select a player, then click a slot'}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
+                  {/* Show SPIN button when no combo */}
+                  {!currentCombo && !isSpinning && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col items-center justify-center gap-4 py-12"
+                    >
+                      <p className="text-sm text-38-muted text-center">
+                        {filledCount === 0
+                          ? 'Spin to get your first club and season'
+                          : filledCount >= 11
+                            ? 'Squad complete!'
+                            : `${11 - filledCount} more pick${11 - filledCount === 1 ? '' : 's'} needed`}
+                      </p>
+                      <button
+                        onClick={handleSpin}
+                        className="w-full py-4 bg-white text-38-bg font-semibold text-lg rounded hover:bg-white/90 transition-colors tracking-wide"
+                      >
+                        SPIN
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
 
-              {/* Post-pick: waiting for next spin */}
-              {hasSpun && !isSpinning && !currentCombo && round <= 11 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center gap-6 py-8"
-                >
+                {/* Right Panel: Formation always visible */}
+                <div className="flex flex-col gap-6">
                   <PitchDiagram
                     formation={formation}
-                    selectedPlayerId={null}
+                    selectedPlayerId={selectedPlayerId}
+                    selectedRole={selectedRole}
+                    onSlotClick={assignPlayerToSlot}
                     onSlotRemove={removePlayerFromSlot}
                   />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSpin}
-                    className="px-12 py-3.5 bg-white text-38-bg font-semibold rounded hover:bg-white/90 transition-colors"
-                  >
-                    SPIN NEXT ROUND
-                  </motion.button>
-                </motion.div>
-              )}
+                  <p className="text-center text-xs text-38-muted">
+                    {selectedPlayerId && selectedRole
+                      ? `Assign to ${roleSlotText[selectedRole]} slot`
+                      : selectedPlayerId
+                        ? 'No matching slots open'
+                        : 'Select a player, then click a slot'}
+                  </p>
+                </div>
+              </div>
             </motion.div>
           )}
 

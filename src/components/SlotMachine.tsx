@@ -79,8 +79,7 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.04 }}
-              className="text-xl font-bold block tracking-tight"
-              style={{ color: activeColors?.primary ?? '#fff' }}
+              className="text-xl font-bold text-white block tracking-tight"
             >
               {display.club}
             </motion.span>

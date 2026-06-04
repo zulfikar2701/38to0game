@@ -1,5 +1,7 @@
 export type Position = 'GK' | 'DEF' | 'MID' | 'FWD'
 
+export type Role = 'GK' | 'CB' | 'FB' | 'CM' | 'W' | 'ST'
+
 export interface GKStats {
   saves: number
   cleanSheets: number
@@ -41,6 +43,7 @@ export interface Player {
   season: string
   position: Position
   positions: Position[]
+  role: Role
   appearances: number
   stats: PositionStats
   eraAdjusted: PositionStats
@@ -49,6 +52,7 @@ export interface Player {
 
 export interface SquadSlot {
   position: Position
+  role: Role
   player: Player | null
 }
 

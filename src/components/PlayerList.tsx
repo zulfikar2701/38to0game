@@ -1,4 +1,4 @@
-import type { Player, Position } from '../types/game'
+import type { Player, Position, Role } from '../types/game'
 import { isFWDStats, isMIDStats, isDEFStats, isGKStats } from '../engine/aggregation'
 
 interface PlayerListProps {
@@ -20,6 +20,15 @@ const POSITION_COLOR: Record<Position, string> = {
   DEF: '#3B82F6',
   MID: '#22C55E',
   FWD: '#EF4444',
+}
+
+const ROLE_SLOT_MAP: Record<Role, string> = {
+  GK: 'GK',
+  CB: 'CB (×2)',
+  FB: 'LB / RB',
+  CM: 'CM (×3)',
+  W: 'LW / RW',
+  ST: 'ST',
 }
 
 function formatStats(player: Player): string {
@@ -46,7 +55,6 @@ function getGoals(player: Player): number {
 }
 
 export function PlayerList({ players, selectedPlayerId, onSelect, currentCombo }: PlayerListProps) {
-  // Sort by goals descending
   const sorted = [...players].sort((a, b) => getGoals(b) - getGoals(a))
 
   return (
@@ -77,7 +85,7 @@ export function PlayerList({ players, selectedPlayerId, onSelect, currentCombo }
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded"
                       style={{
@@ -86,6 +94,9 @@ export function PlayerList({ players, selectedPlayerId, onSelect, currentCombo }
                       }}
                     >
                       {POSITION_LABEL[pos]}
+                    </span>
+                    <span className="text-[10px] font-medium text-white/70 bg-white/[0.08] px-1.5 py-0.5 rounded">
+                      {ROLE_SLOT_MAP[player.role]}
                     </span>
                     {player.positions.length > 1 && (
                       <span className="text-[10px] text-38-muted/60">
@@ -98,11 +109,8 @@ export function PlayerList({ players, selectedPlayerId, onSelect, currentCombo }
                     {player.club} · {player.season} · {player.appearances} apps
                   </span>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span
-                    className="text-xs font-bold"
-                    style={{ color: colors.primary }}
-                  >
+                <div className="flex flex-col items-end gap-1.5">
+                  <span className="text-xs font-bold text-white/90">
                     {formatStats(player)}
                   </span>
                   <div className="flex gap-1">

@@ -4,6 +4,7 @@ import type {
   GameMode,
   Formation,
   Position,
+  Role,
   Player,
   SimulationResult,
 } from '../types/game'
@@ -20,17 +21,17 @@ import { generateSeasonCommentary } from '../engine/narrative'
 
 export function createEmptyFormation(): Formation {
   return [
-    { position: 'GK', player: null },
-    { position: 'DEF', player: null },
-    { position: 'DEF', player: null },
-    { position: 'DEF', player: null },
-    { position: 'DEF', player: null },
-    { position: 'MID', player: null },
-    { position: 'MID', player: null },
-    { position: 'MID', player: null },
-    { position: 'FWD', player: null },
-    { position: 'FWD', player: null },
-    { position: 'FWD', player: null },
+    { position: 'GK', role: 'GK', player: null },
+    { position: 'DEF', role: 'FB', player: null },
+    { position: 'DEF', role: 'CB', player: null },
+    { position: 'DEF', role: 'CB', player: null },
+    { position: 'DEF', role: 'FB', player: null },
+    { position: 'MID', role: 'CM', player: null },
+    { position: 'MID', role: 'CM', player: null },
+    { position: 'MID', role: 'CM', player: null },
+    { position: 'FWD', role: 'W', player: null },
+    { position: 'FWD', role: 'ST', player: null },
+    { position: 'FWD', role: 'W', player: null },
   ] as Formation
 }
 
@@ -39,6 +40,16 @@ export function getOpenPositions(formation: Formation): Position[] {
   for (const slot of formation) {
     if (slot.player === null) {
       open.push(slot.position)
+    }
+  }
+  return open
+}
+
+export function getOpenRoles(formation: Formation): Role[] {
+  const open: Role[] = []
+  for (const slot of formation) {
+    if (slot.player === null) {
+      open.push(slot.role)
     }
   }
   return open
@@ -152,7 +163,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!player) return
 
     const slot = formation[slotIndex]
-    if (!slot || slot.player !== null || slot.position !== player.position) return
+    if (!slot || slot.player !== null) return
+
+    // Validate role match
+    if (slot.role !== player.role) return
 
     const newFormation = formation.map((s, i) =>
       i === slotIndex ? { ...s, player } : { ...s },

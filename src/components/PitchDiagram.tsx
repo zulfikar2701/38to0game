@@ -1,137 +1,179 @@
 import { motion } from 'framer-motion'
-import type { Formation } from '../types/game'
+import type { Formation, Role } from '../types/game'
+import { clubColors } from '../data/clubColors'
 
-interface Props {
+interface PitchDiagramProps {
   formation: Formation
-  isAnimating?: boolean
   selectedPlayerId: string | null
-  onSlotClick?: (index: number) => void
-  onSlotRemove?: (index: number) => void
+  selectedRole?: Role | null
+  isAnimating?: boolean
+  onSlotClick?: (slotIndex: number) => void
+  onSlotRemove?: (slotIndex: number) => void
 }
 
-const dotPositions = [
-  { x: 150, y: 360, pos: 'GK', label: 'GK' },
-  { x: 50, y: 300, pos: 'DEF', label: 'LB' },
-  { x: 115, y: 300, pos: 'DEF', label: 'LCB' },
-  { x: 185, y: 300, pos: 'DEF', label: 'RCB' },
-  { x: 250, y: 300, pos: 'DEF', label: 'RB' },
-  { x: 75, y: 200, pos: 'MID', label: 'LCM' },
-  { x: 150, y: 200, pos: 'MID', label: 'CM' },
-  { x: 225, y: 200, pos: 'MID', label: 'RCM' },
-  { x: 75, y: 100, pos: 'FWD', label: 'LW' },
-  { x: 150, y: 100, pos: 'FWD', label: 'ST' },
-  { x: 225, y: 100, pos: 'FWD', label: 'RW' },
-]
+const SLOT_LABELS: Record<string, string> = {
+  GK: 'GK',
+  LCB: 'LCB',
+  RCB: 'RCB',
+  LB: 'LB',
+  RB: 'RB',
+  LCM: 'LCM',
+  CM: 'CM',
+  RCM: 'RCM',
+  LW: 'LW',
+  RW: 'RW',
+  ST: 'ST',
+}
+
+// Fixed order for 4-3-3: GK, LB, LCB, RCB, RB, LCM, CM, RCM, LW, ST, RW
+const POSITION_ORDER = [
+  'GK', 'LB', 'LCB', 'RCB', 'RB', 'LCM', 'CM', 'RCM', 'LW', 'ST', 'RW',
+] as const
+
+function getSlotPosition(slotLabel: string): { top: string; left: string } {
+  const positions: Record<string, { top: string; left: string }> = {
+    GK: { top: '92%', left: '50%' },
+    LB: { top: '72%', left: '18%' },
+    LCB: { top: '74%', left: '38%' },
+    RCB: { top: '74%', left: '62%' },
+    RB: { top: '72%', left: '82%' },
+    LCM: { top: '48%', left: '25%' },
+    CM: { top: '44%', left: '50%' },
+    RCM: { top: '48%', left: '75%' },
+    LW: { top: '22%', left: '20%' },
+    ST: { top: '16%', left: '50%' },
+    RW: { top: '22%', left: '80%' },
+  }
+  return positions[slotLabel] || { top: '50%', left: '50%' }
+}
 
 export function PitchDiagram({
   formation,
-  isAnimating = false,
   selectedPlayerId,
+  selectedRole = null,
+  isAnimating = false,
   onSlotClick,
   onSlotRemove,
-}: Props) {
+}: PitchDiagramProps) {
+  const filledCount = formation.filter((s) => s.player !== null).length
+
   return (
-    <div className="w-full max-w-sm mx-auto aspect-[3/4] bg-[#0f2e1f] rounded-xl overflow-hidden border border-white/5 relative select-none shadow-2xl">
-      <svg viewBox="0 0 300 400" className="w-full h-full">
-        {/* Field */}
-        <rect x="0" y="0" width="300" height="400" fill="#0f2e1f" />
-        <rect x="10" y="10" width="280" height="380" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        <line x1="10" y1="200" x2="290" y2="200" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        <circle cx="150" cy="200" r="40" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        <circle cx="150" cy="200" r="2" fill="rgba(255,255,255,0.3)" />
-        <rect x="70" y="10" width="160" height="60" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-        <rect x="70" y="330" width="160" height="60" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+    <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden border border-38-border/30 bg-white/[0.02] shadow-lg">
+      {/* Pitch background */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-[0.04]">
+        <svg viewBox="0 0 100 133" className="w-full h-full" preserveAspectRatio="none">
+          <rect x="5" y="5" width="90" height="123" fill="none" stroke="currentColor" strokeWidth="0.5" rx="2" />
+          <line x1="5" y1="66.5" x2="95" y2="66.5" stroke="currentColor" strokeWidth="0.5" />
+          <circle cx="50" cy="66.5" r="10" fill="none" stroke="currentColor" strokeWidth="0.5" />
+          <circle cx="50" cy="66.5" r="0.5" fill="currentColor" />
+          <rect x="30" y="5" width="40" height="15" fill="none" stroke="currentColor" strokeWidth="0.5" rx="1" />
+          <rect x="40" y="5" width="20" height="8" fill="none" stroke="currentColor" strokeWidth="0.5" rx="1" />
+          <rect x="30" y="113" width="40" height="15" fill="none" stroke="currentColor" strokeWidth="0.5" rx="1" />
+          <rect x="40" y="120" width="20" height="8" fill="none" stroke="currentColor" strokeWidth="0.5" rx="1" />
+        </svg>
+      </div>
 
-        {/* Player dots */}
-        {dotPositions.map((dot, i) => {
-          const slot = formation[i]
-          const isFilled = slot?.player !== null
-          const label = isFilled
-            ? slot.player!.name.split(' ').slice(-1)[0]
-            : dot.label
+      {/* Slots */}
+      {formation.map((slot, index) => {
+        const label = POSITION_ORDER[index]
+        const { top, left } = getSlotPosition(label)
+        const hasPlayer = slot.player !== null
+        const canAssignHere = selectedRole !== null && !hasPlayer && slot.role === selectedRole
+        const isHighlighted = selectedPlayerId !== null && !hasPlayer && canAssignHere
+        const colors = hasPlayer ? clubColors[slot.player!.club] : undefined
 
-          const isClickable = !isFilled && selectedPlayerId !== null
-          const colors = isFilled ? slot.player!.clubColors : null
-
-          const circle = (
-            <g
-              key={i}
+        return (
+          <motion.div
+            key={index}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ top, left }}
+            initial={isAnimating && hasPlayer ? { opacity: 0, scale: 0.5 } : undefined}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={isAnimating && hasPlayer ? { delay: index * 0.08, duration: 0.3 } : undefined}
+          >
+            <button
+              className={[
+                'relative flex flex-col items-center gap-1',
+                onSlotClick && canAssignHere ? 'cursor-pointer' : 'cursor-default',
+              ].join(' ')}
               onClick={() => {
-                if (isFilled && onSlotRemove) {
-                  onSlotRemove(i)
-                } else if (isClickable && onSlotClick) {
-                  onSlotClick(i)
+                if (onSlotClick && canAssignHere) {
+                  onSlotClick(index)
                 }
               }}
-              style={{ cursor: isFilled || isClickable ? 'pointer' : 'default' }}
             >
-              <circle
-                cx={dot.x}
-                cy={dot.y}
-                r={isFilled ? 24 : 18}
-                fill={colors ? `${colors.primary}25` : 'rgba(255,255,255,0.03)'}
-                stroke={isClickable ? 'rgba(255,255,255,0.5)' : colors ? colors.primary : 'rgba(255,255,255,0.15)'}
-                strokeWidth={isClickable ? 2 : isFilled ? 2.5 : 1}
-              />
-              <text
-                x={dot.x}
-                y={dot.y - 3}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fill={isFilled ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
-                fontSize={isFilled ? 8 : 9}
-                fontWeight={isFilled ? '600' : '400'}
-                fontFamily="system-ui, sans-serif"
+              {/* Player circle / slot */}
+              <div
+                className={[
+                  'w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold transition-all',
+                  isHighlighted
+                    ? 'ring-2 ring-38-gold ring-offset-2 ring-offset-38-bg scale-110'
+                    : '',
+                  hasPlayer
+                    ? 'text-white'
+                    : canAssignHere
+                      ? 'border border-white/30 text-white/50 bg-white/[0.04]'
+                      : 'border border-white/10 text-white/20 bg-white/[0.02]',
+                ].join(' ')}
+                style={
+                  colors
+                    ? {
+                        borderColor: `${colors.primary}80`,
+                        boxShadow: `0 0 20px ${colors.primary}30`,
+                        backgroundColor: `${colors.primary}15`,
+                      }
+                    : undefined
+                }
               >
-                {label.length > 8 ? label.substring(0, 7) + '..' : label}
-              </text>
-              {isFilled && colors && (
-                <>
-                  <text
-                    x={dot.x}
-                    y={dot.y + 10}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={colors.primary}
-                    fontSize={6}
-                    fontFamily="system-ui, sans-serif"
-                    fontWeight="600"
-                  >
-                    {slot.player!.club}
-                  </text>
-                  <circle
-                    cx={dot.x + 18}
-                    cy={dot.y - 14}
-                    r="4"
-                    fill={colors.primary}
+                {hasPlayer ? (
+                  <span className="text-[10px] font-bold text-white">
+                    {slot.role}
+                  </span>
+                ) : (
+                  <span className={canAssignHere ? 'text-white/60' : ''}>{slot.role}</span>
+                )}
+              </div>
+
+              {/* Club dots */}
+              {hasPlayer && colors && (
+                <div className="flex gap-0.5">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: colors.primary }}
                   />
-                  <circle
-                    cx={dot.x + 22}
-                    cy={dot.y - 14}
-                    r="4"
-                    fill={colors.accent}
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: colors.accent }}
                   />
-                </>
+                </div>
               )}
-            </g>
-          )
 
-          if (isAnimating && isFilled) {
-            return (
-              <motion.g
-                key={i}
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.08, duration: 0.25 }}
-              >
-                {circle.props.children}
-              </motion.g>
-            )
-          }
+              {/* Name label */}
+              <span className="text-[10px] font-medium text-white/80 whitespace-nowrap max-w-[80px] truncate">
+                {slot.player?.name || SLOT_LABELS[label]}
+              </span>
 
-          return circle
-        })}
-      </svg>
+              {/* Remove button for filled slots */}
+              {hasPlayer && onSlotRemove && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSlotRemove(index)
+                  }}
+                  className="text-[10px] text-38-muted hover:text-white transition-colors px-1"
+                >
+                  ×
+                </button>
+              )}
+            </button>
+          </motion.div>
+        )
+      })}
+
+      {/* Filled count indicator */}
+      <div className="absolute bottom-3 right-4 text-xs text-38-muted">
+        {filledCount}/11
+      </div>
     </div>
   )
 }
