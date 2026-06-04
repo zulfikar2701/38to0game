@@ -87,6 +87,22 @@ export interface LeagueTeam {
   points: number
 }
 
+export interface PlayerSeasonStat {
+  playerId: string
+  name: string
+  club: string
+  season: string
+  role: Role
+  goals: number
+  assists: number
+  cleanSheets: number
+  keyPasses: number
+  tackles: number
+  interceptions: number
+  appearances: number
+  rating: number
+}
+
 export interface SimulationResult {
   squadStrength: number
   finalPoints: number
@@ -97,6 +113,8 @@ export interface SimulationResult {
   leagueTable: LeagueTeam[]
   seasonCommentary: string[]
   verdict: string
+  squad: Player[]
+  playerStats: PlayerSeasonStat[]
 }
 
 export type GamePhase =

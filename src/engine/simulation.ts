@@ -1,34 +1,36 @@
 import type { TeamPillars } from './aggregation'
-import type { SimulationResult, MatchResult, LeagueTeam } from '../types/game'
+import type { SimulationResult, MatchResult, LeagueTeam, PlayerSeasonStat, Formation, Player } from '../types/game'
+import { isFWDStats, isMIDStats, isDEFStats, isGKStats } from './aggregation'
 
 export interface Opponent {
   name: string
   attack: number
   defense: number
   control: number
+  quality: number // 0-100, underlying true strength for AI-vs-AI weighting
 }
 
-// 19 opponents representing historical Premier League seasons
+// 19 opponents: 2025-26 Premier League (based on 2024-25 finishing order, Southampton omitted)
 const opponents: Opponent[] = [
-  { name: 'Man City 2022-23', attack: 210, defense: 160, control: 180 },
-  { name: 'Liverpool 2019-20', attack: 175, defense: 155, control: 165 },
-  { name: 'Chelsea 2016-17', attack: 165, defense: 150, control: 155 },
-  { name: 'Arsenal 2023-24', attack: 170, defense: 140, control: 160 },
-  { name: 'Spurs 2016-17', attack: 165, defense: 135, control: 145 },
-  { name: 'Man Utd 2022-23', attack: 145, defense: 140, control: 150 },
-  { name: 'Newcastle 2022-23', attack: 150, defense: 135, control: 140 },
-  { name: 'Brighton 2022-23', attack: 140, defense: 130, control: 145 },
-  { name: 'Aston Villa 2023-24', attack: 150, defense: 125, control: 135 },
-  { name: 'West Ham 2020-21', attack: 135, defense: 125, control: 130 },
-  { name: 'Leicester 2019-20', attack: 140, defense: 120, control: 135 },
-  { name: 'Everton 2016-17', attack: 130, defense: 120, control: 125 },
-  { name: 'Crystal Palace 2022-23', attack: 120, defense: 115, control: 120 },
-  { name: 'Brentford 2021-22', attack: 125, defense: 110, control: 115 },
-  { name: 'Wolves 2019-20', attack: 110, defense: 120, control: 110 },
-  { name: 'Fulham 2022-23', attack: 115, defense: 105, control: 110 },
-  { name: 'Bournemouth 2022-23', attack: 105, defense: 100, control: 105 },
-  { name: 'Sheffield Utd 2019-20', attack: 95, defense: 100, control: 90 },
-  { name: 'Luton Town 2023-24', attack: 90, defense: 85, control: 85 },
+  { name: 'Liverpool', attack: 190, defense: 150, control: 170, quality: 94 },
+  { name: 'Arsenal', attack: 195, defense: 160, control: 180, quality: 92 },
+  { name: 'Man City', attack: 200, defense: 155, control: 185, quality: 91 },
+  { name: 'Chelsea', attack: 175, defense: 145, control: 165, quality: 82 },
+  { name: 'Newcastle', attack: 170, defense: 140, control: 155, quality: 78 },
+  { name: 'Aston Villa', attack: 165, defense: 135, control: 145, quality: 76 },
+  { name: 'Spurs', attack: 165, defense: 140, control: 155, quality: 73 },
+  { name: 'Brighton', attack: 150, defense: 140, control: 150, quality: 71 },
+  { name: "Nott'm Forest", attack: 155, defense: 140, control: 140, quality: 69 },
+  { name: 'Brentford', attack: 145, defense: 130, control: 135, quality: 66 },
+  { name: 'Fulham', attack: 140, defense: 125, control: 130, quality: 63 },
+  { name: 'Crystal Palace', attack: 130, defense: 125, control: 130, quality: 60 },
+  { name: 'West Ham', attack: 145, defense: 135, control: 140, quality: 59 },
+  { name: 'Man Utd', attack: 160, defense: 145, control: 155, quality: 58 },
+  { name: 'Bournemouth', attack: 135, defense: 120, control: 125, quality: 55 },
+  { name: 'Everton', attack: 125, defense: 120, control: 115, quality: 50 },
+  { name: 'Wolves', attack: 120, defense: 125, control: 120, quality: 46 },
+  { name: 'Ipswich', attack: 110, defense: 105, control: 100, quality: 38 },
+  { name: 'Leicester', attack: 115, defense: 110, control: 105, quality: 35 },
 ]
 
 function seededRandom(seed: number): () => number {
@@ -86,6 +88,50 @@ function simulateMatch(
   return { goalsFor, goalsAgainst }
 }
 
+/**
+ * When two AI opponents play each other, quality difference heavily weights the result.
+ * This ensures big clubs finish top and weak clubs bottom ~80-90% of the time.
+ */
+function simulateOpponentMatch(
+  teamA: Opponent,
+  teamB: Opponent,
+  homeA: boolean,
+  rng: () => number,
+): { goalsA: number; goalsB: number } {
+  const homeBoost = homeA ? 1.08 : 0.92
+  const qualityRatio = teamA.quality / Math.max(1, teamB.quality)
+
+  // Quality gap directly scales attack/defense effectiveness
+  const qualityExp = 1.5
+  const aAttackMult = homeBoost * Math.pow(qualityRatio, qualityExp)
+  const aDefenseMult = (1 / homeBoost) * Math.pow(qualityRatio, qualityExp * 0.7)
+
+  const aAttackEff = teamA.attack * aAttackMult
+  const bAttackEff = teamB.attack / aDefenseMult
+
+  const aDefenseEff = teamA.defense * aDefenseMult
+  const bDefenseEff = teamB.defense / aAttackMult
+
+  // Control edge still matters but quality dominates
+  const controlEdge = clamp((teamA.control - teamB.control) / 300, -0.08, 0.08)
+
+  const aLambda = clamp((aAttackEff / (aAttackEff + bDefenseEff * 0.6)) * 3.0, 0.3, 5.0) * (1 + controlEdge)
+  const bLambda = clamp((bAttackEff / (bAttackEff + aDefenseEff * 0.6)) * 3.0, 0.3, 5.0) * (1 - controlEdge)
+
+  let goalsA = poisson(aLambda, rng)
+  let goalsB = poisson(bLambda, rng)
+
+  // Occasional blowout modifier (rarer for AI games to keep totals realistic)
+  if (rng() < 0.02) {
+    goalsA += Math.floor(rng() * 2) + 1
+  }
+  if (rng() < 0.02) {
+    goalsB += Math.floor(rng() * 2) + 1
+  }
+
+  return { goalsA, goalsB }
+}
+
 function generateMatchCommentary(
   _user: TeamPillars,
   opponent: Opponent,
@@ -115,8 +161,67 @@ function generateMatchCommentary(
   return `Defeat ${venue} against ${opponent.name}.` + (goalsAgainst >= 2 ? ' The backline will need to improve.' : ' A cruel late goal decided it.')
 }
 
+function simulatePlayerSeason(
+  player: Player,
+  rng: () => number,
+): PlayerSeasonStat {
+  const stats = player.stats
+  const apps = Math.round(28 + rng() * 10) // 28-38 appearances
+
+  let goals = 0
+  let assists = 0
+  let cleanSheets = 0
+  let keyPasses = 0
+  let tackles = 0
+  let interceptions = 0
+  let rating = 0
+
+  if (isFWDStats(stats)) {
+    const gpg = stats.goals / Math.max(1, player.appearances)
+    const apg = stats.assists / Math.max(1, player.appearances)
+    goals = Math.round(gpg * apps * (0.9 + rng() * 0.2))
+    assists = Math.round(apg * apps * (0.9 + rng() * 0.2))
+    rating = goals * 3 + assists * 2 + apps * 0.5
+  } else if (isMIDStats(stats)) {
+    const gpg = stats.goals / Math.max(1, player.appearances)
+    const apg = stats.assists / Math.max(1, player.appearances)
+    const kppg = stats.keyPasses / Math.max(1, player.appearances)
+    goals = Math.round(gpg * apps * (0.9 + rng() * 0.2))
+    assists = Math.round(apg * apps * (0.9 + rng() * 0.2))
+    keyPasses = Math.round(kppg * apps * (0.9 + rng() * 0.2))
+    rating = goals * 2 + assists * 2 + keyPasses * 1.5 + apps * 0.5
+  } else if (isDEFStats(stats)) {
+    const tpg = stats.tackles / Math.max(1, player.appearances)
+    const ipg = stats.interceptions / Math.max(1, player.appearances)
+    tackles = Math.round(tpg * apps * (0.9 + rng() * 0.2))
+    interceptions = Math.round(ipg * apps * (0.9 + rng() * 0.2))
+    rating = tackles * 1.5 + interceptions * 1.5 + apps * 0.3
+  } else if (isGKStats(stats)) {
+    const cspg = stats.cleanSheets / Math.max(1, player.appearances)
+    cleanSheets = Math.round(cspg * apps * (0.9 + rng() * 0.2))
+    rating = cleanSheets * 5 + apps * 0.5
+  }
+
+  return {
+    playerId: player.id,
+    name: player.name,
+    club: player.club,
+    season: player.season,
+    role: player.role,
+    goals,
+    assists,
+    cleanSheets,
+    keyPasses,
+    tackles,
+    interceptions,
+    appearances: apps,
+    rating: Math.round(rating * 10) / 10,
+  }
+}
+
 export function runFullSimulation(
   pillars: TeamPillars,
+  formation: Formation,
   seed?: number,
 ): SimulationResult {
   const rng = seededRandom(seed ?? Math.floor(Math.random() * 1000000))
@@ -129,17 +234,14 @@ export function runFullSimulation(
   // Generate fixtures: each opponent twice, home/away randomized and shuffled
   const fixtures: { opponent: Opponent; home: boolean }[] = []
 
-  // First half: play each opponent once, random home/away
   for (const opponent of opponents) {
     fixtures.push({ opponent, home: rng() < 0.5 })
   }
 
-  // Second half: return fixtures with reversed venue
   for (const f of fixtures.slice(0, 19)) {
     fixtures.push({ opponent: f.opponent, home: !f.home })
   }
 
-  // Shuffle all 38 fixtures so return games are interleaved, not paired
   for (let i = fixtures.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1))
     const temp = fixtures[i]
@@ -168,10 +270,9 @@ export function runFullSimulation(
     gameweek++
   }
 
-  // Build league table: user + 19 opponents with their own simulated seasons
+  // Build league table
   const leagueTable: LeagueTeam[] = []
 
-  // User team
   leagueTable.push({
     name: 'Your XI',
     played: 38,
@@ -184,7 +285,6 @@ export function runFullSimulation(
     points: totalPoints,
   })
 
-  // Opponent teams: simulate their seasons vs each other (simplified)
   for (const opp of opponents) {
     let pts = 0
     let w = 0
@@ -194,21 +294,16 @@ export function runFullSimulation(
     let ga = 0
     for (const other of opponents) {
       if (opp.name === other.name) continue
-      // Simulate 2 games vs each opponent
       for (let h = 0; h < 2; h++) {
         const home = h === 0
-        const { goalsFor, goalsAgainst } = simulateMatch(
-          { teamAttack: opp.attack, teamDefense: opp.defense, teamControl: opp.control },
-          other,
-          home,
-          rng,
-        )
-        gf += goalsFor
-        ga += goalsAgainst
-        if (goalsFor > goalsAgainst) {
+        const { goalsA, goalsB } = simulateOpponentMatch(opp, other, home, rng)
+        // goalsA = opp's goals, goalsB = other's goals
+        gf += goalsA
+        ga += goalsB
+        if (goalsA > goalsB) {
           pts += 3
           w++
-        } else if (goalsFor === goalsAgainst) {
+        } else if (goalsA === goalsB) {
           pts += 1
           d++
         } else {
@@ -216,11 +311,10 @@ export function runFullSimulation(
         }
       }
     }
-    // Also simulate vs user (already counted in user matches, but opponent needs those results too)
     const userHomeMatches = matches.filter((m) => m.opponent === opp.name && m.home)
     const userAwayMatches = matches.filter((m) => m.opponent === opp.name && !m.home)
     for (const m of userHomeMatches) {
-      // User was home, opponent was away
+      // User was home, opp was away -> opp's goals = goalsAgainst, conceded = goalsFor
       gf += m.goalsAgainst
       ga += m.goalsFor
       if (m.goalsAgainst > m.goalsFor) {
@@ -234,7 +328,7 @@ export function runFullSimulation(
       }
     }
     for (const m of userAwayMatches) {
-      // User was away, opponent was home
+      // User was away, opp was home -> opp's goals = goalsAgainst, conceded = goalsFor
       gf += m.goalsAgainst
       ga += m.goalsFor
       if (m.goalsAgainst > m.goalsFor) {
@@ -261,7 +355,6 @@ export function runFullSimulation(
     })
   }
 
-  // Sort league table by points, then GD, then GF
   leagueTable.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points
     if (b.gd !== a.gd) return b.gd - a.gd
@@ -270,7 +363,11 @@ export function runFullSimulation(
 
   const userPosition = leagueTable.findIndex((t) => t.name === 'Your XI') + 1
 
-  // Verdict based on position
+  // Generate player season stats
+  const squadPlayers = formation.map((s) => s.player).filter(Boolean) as Player[]
+  const playerStats = squadPlayers.map((p) => simulatePlayerSeason(p, rng))
+  playerStats.sort((a, b) => b.rating - a.rating)
+
   const verdict =
     userPosition === 1
       ? totalPoints >= 100
@@ -289,7 +386,7 @@ export function runFullSimulation(
               : 'RELEGATED'
 
   return {
-    squadStrength: 0, // filled in by caller
+    squadStrength: 0,
     finalPoints: totalPoints,
     finalPosition: userPosition,
     totalGoalsFor: totalGF,
@@ -298,5 +395,7 @@ export function runFullSimulation(
     leagueTable,
     seasonCommentary: [],
     verdict,
+    squad: [],
+    playerStats,
   }
 }

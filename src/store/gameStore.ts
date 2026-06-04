@@ -64,6 +64,7 @@ interface GameState {
   currentCombo: ClubSeasonCombo | null
   availablePlayers: Player[]
   usedPlayers: Set<string>
+  usedPlayerNames: Set<string>
   simulationResult: SimulationResult | null
   combos: ClubSeasonCombo[]
   selectedPlayerId: string | null
@@ -72,6 +73,8 @@ interface GameState {
   startGame: (mode: GameMode) => void
   spinSlot: () => void
   useSkip: () => void
+  skipClub: () => void
+  skipSeason: () => void
   selectPlayer: (playerId: string) => void
   assignPlayerToSlot: (slotIndex: number) => void
   removePlayerFromSlot: (slotIndex: number) => void
@@ -85,10 +88,11 @@ const initialState = {
   mode: 'classic' as GameMode,
   round: 1,
   formation: createEmptyFormation(),
-  skipsRemaining: 1,
+  skipsRemaining: 2,
   currentCombo: null as ClubSeasonCombo | null,
   availablePlayers: [] as Player[],
   usedPlayers: new Set<string>(),
+  usedPlayerNames: new Set<string>(),
   simulationResult: null as SimulationResult | null,
   combos: buildCombos(players),
   selectedPlayerId: null as string | null,
@@ -104,10 +108,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       mode,
       round: 1,
       formation: createEmptyFormation(),
-      skipsRemaining: 1,
+      skipsRemaining: 2,
       currentCombo: null,
       availablePlayers: [],
       usedPlayers: new Set<string>(),
+      usedPlayerNames: new Set<string>(),
       simulationResult: null,
       selectedPlayerId: null,
       hasSpun: false,
@@ -115,10 +120,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   spinSlot: () => {
-    const { formation, usedPlayers, combos } = get()
+    const { formation, usedPlayers, usedPlayerNames, combos } = get()
     const openPositions = getOpenPositions(formation)
+    const openRoles = getOpenRoles(formation)
     const validCombos = combos.filter((combo) =>
-      hasSelectablePlayers(players, combo, usedPlayers, openPositions),
+      hasSelectablePlayers(players, combo, usedPlayers, usedPlayerNames, openPositions, openRoles),
     )
 
     if (validCombos.length === 0) {
@@ -132,7 +138,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       players,
       randomCombo,
       usedPlayers,
+      usedPlayerNames,
       openPositions,
+      openRoles,
     )
 
     set({
@@ -151,12 +159,68 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  skipClub: () => {
+    const { formation, usedPlayers, usedPlayerNames, combos, currentCombo, skipsRemaining } = get()
+    if (!currentCombo || skipsRemaining === 0) return
+
+    const openPositions = getOpenPositions(formation)
+    const openRoles = getOpenRoles(formation)
+
+    const sameSeasonCombos = combos.filter((c) =>
+      c.season === currentCombo.season &&
+      c.club !== currentCombo.club &&
+      hasSelectablePlayers(players, c, usedPlayers, usedPlayerNames, openPositions, openRoles),
+    )
+
+    if (sameSeasonCombos.length > 0) {
+      const newCombo = sameSeasonCombos[Math.floor(Math.random() * sameSeasonCombos.length)]
+      const available = getPlayersForCombo(players, newCombo, usedPlayers, usedPlayerNames, openPositions, openRoles)
+      set({
+        currentCombo: newCombo,
+        availablePlayers: available,
+        selectedPlayerId: null,
+        skipsRemaining: skipsRemaining - 1,
+      })
+    } else {
+      get().spinSlot()
+      set({ skipsRemaining: skipsRemaining - 1 })
+    }
+  },
+
+  skipSeason: () => {
+    const { formation, usedPlayers, usedPlayerNames, combos, currentCombo, skipsRemaining } = get()
+    if (!currentCombo || skipsRemaining === 0) return
+
+    const openPositions = getOpenPositions(formation)
+    const openRoles = getOpenRoles(formation)
+
+    const sameClubCombos = combos.filter((c) =>
+      c.club === currentCombo.club &&
+      c.season !== currentCombo.season &&
+      hasSelectablePlayers(players, c, usedPlayers, usedPlayerNames, openPositions, openRoles),
+    )
+
+    if (sameClubCombos.length > 0) {
+      const newCombo = sameClubCombos[Math.floor(Math.random() * sameClubCombos.length)]
+      const available = getPlayersForCombo(players, newCombo, usedPlayers, usedPlayerNames, openPositions, openRoles)
+      set({
+        currentCombo: newCombo,
+        availablePlayers: available,
+        selectedPlayerId: null,
+        skipsRemaining: skipsRemaining - 1,
+      })
+    } else {
+      get().spinSlot()
+      set({ skipsRemaining: skipsRemaining - 1 })
+    }
+  },
+
   selectPlayer: (playerId: string) => {
     set({ selectedPlayerId: playerId })
   },
 
   assignPlayerToSlot: (slotIndex: number) => {
-    const { selectedPlayerId, availablePlayers, formation, usedPlayers, round } = get()
+    const { selectedPlayerId, availablePlayers, formation, usedPlayers, usedPlayerNames, round } = get()
     if (!selectedPlayerId) return
 
     const player = availablePlayers.find((p) => p.id === selectedPlayerId)
@@ -175,10 +239,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newUsedPlayers = new Set(usedPlayers)
     newUsedPlayers.add(player.id)
 
+    const newUsedPlayerNames = new Set(usedPlayerNames)
+    newUsedPlayerNames.add(player.name)
+
     if (round >= 11) {
       set({
         formation: newFormation,
         usedPlayers: newUsedPlayers,
+        usedPlayerNames: newUsedPlayerNames,
         phase: 'confirming',
         currentCombo: null,
         availablePlayers: [],
@@ -189,6 +257,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         formation: newFormation,
         usedPlayers: newUsedPlayers,
+        usedPlayerNames: newUsedPlayerNames,
         round: round + 1,
         selectedPlayerId: null,
         currentCombo: null,
@@ -199,7 +268,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   removePlayerFromSlot: (slotIndex: number) => {
-    const { formation, usedPlayers, round } = get()
+    const { formation, usedPlayers, usedPlayerNames, round } = get()
     const slot = formation[slotIndex]
     if (!slot || !slot.player) return
 
@@ -210,9 +279,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newUsedPlayers = new Set(usedPlayers)
     newUsedPlayers.delete(slot.player.id)
 
+    const newUsedPlayerNames = new Set(usedPlayerNames)
+    newUsedPlayerNames.delete(slot.player.name)
+
     set({
       formation: newFormation,
       usedPlayers: newUsedPlayers,
+      usedPlayerNames: newUsedPlayerNames,
       round: Math.max(1, round - 1),
       phase: 'drafting',
       selectedPlayerId: null,
@@ -229,13 +302,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   runSimulation: () => {
     const { formation } = get()
     const agg = aggregateSquad(formation)
-    const result = runFullSimulation(agg.pillars)
+    const result = runFullSimulation(agg.pillars, formation)
     result.squadStrength = agg.squadStrength
     result.seasonCommentary = generateSeasonCommentary(
       agg.pillars,
       result.finalPosition,
       result.finalPoints,
     )
+    result.squad = formation.map((s) => s.player!).filter(Boolean)
     set({ simulationResult: result, phase: 'results' })
   },
 

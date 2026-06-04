@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 import random
+import os
 
 url = 'https://raw.githubusercontent.com/vibedatascience/understat_players_aggregated/main/understat_players_aggregated_2014_2024.csv'
 df = pd.read_csv(url)
@@ -70,8 +71,19 @@ def map_primary_position(row):
 
 epl['mapped_position'] = epl.apply(map_primary_position, axis=1)
 
-# Essential manual overrides only
+# ---- LOAD STATSBOMB GROUND TRUTH FOR 2015-16 ----
+STATS_BOMB_GT = {}
+gt_path = os.path.join(os.path.dirname(__file__), 'statsbomb_groundtruth.json')
+if os.path.exists(gt_path):
+    with open(gt_path, 'r', encoding='utf-8') as f:
+        STATS_BOMB_GT = json.load(f)
+    print(f'Loaded {len(STATS_BOMB_GT)} StatsBomb ground truth entries')
+else:
+    print('No StatsBomb ground truth file found, using heuristics only')
+
+# Role inference with StatsBomb ground truth + manual overrides
 ROLE_OVERRIDES = {
+    # Fullbacks
     'Trent Alexander-Arnold': 'FB', 'Andrew Robertson': 'FB', 'Kyle Walker': 'FB',
     'Kieran Trippier': 'FB', 'Luke Shaw': 'FB', 'Lucas Digne': 'FB', 'Ben Chilwell': 'FB',
     'Oleksandr Zinchenko': 'FB', 'João Cancelo': 'FB', 'Reece James': 'FB',
@@ -133,7 +145,7 @@ ROLE_OVERRIDES = {
     'Abdoulaye Doucouré': 'CM', 'Étienne Capoue': 'CM', 'Roberto Pereyra': 'CM',
     'Moussa Sissoko': 'CM', 'Harry Winks': 'CM', 'Giovani Lo Celso': 'CM',
     'Jordan Pickford': 'GK', 'Nick Pope': 'GK', 'Emiliano Martínez': 'GK',
-    'Kepa Arrizabalaga': 'GK', 'Édouard Mendy': 'GK', 'Robert Sánchez': 'GK',
+    'Kepa Arrizabalaga': 'GK', 'Édouard Mendy': 'GK', 'Robert Sán': 'GK',
     'Robin Olsen': 'GK', 'Fraser Forster': 'GK', 'Ben Foster': 'GK',
     'Asmir Begović': 'GK', 'Vicente Guaita': 'GK', 'Sam Johnstone': 'GK',
     'Dean Henderson': 'GK', 'Martin Dúbravka': 'GK', 'David Raya': 'GK',
@@ -144,6 +156,9 @@ ROLE_OVERRIDES = {
     'Loris Karius': 'GK', 'Freddie Woodman': 'GK', 'Jake Turner': 'GK',
     'Teddy Sharman-Lowe': 'GK', 'Ben Hamer': 'GK', 'Orestis Karnezis': 'GK',
     'Lucas Bergström': 'GK', 'Marcus Bettinelli': 'GK', 'Djordje Petrovic': 'GK',
+    # Specific fixes for Understat misclassifications
+    'Dwight McNeil': 'W',
+    'James Garner': 'CM',
 }
 
 def infer_role(row):
@@ -152,10 +167,17 @@ def infer_role(row):
     games = max(1, int(row['games']))
     goals = int(row['goals'])
     kp = float(row.get('key_passes', 0)) if pd.notna(row.get('key_passes', 0)) else 0
+    season = row['season_fmt']
     
+    # 1. Manual overrides (strongest priority)
     if name in ROLE_OVERRIDES:
         return ROLE_OVERRIDES[name]
     
+    # 2. StatsBomb ground truth for 2015-16 season
+    if season == '2015-16' and name in STATS_BOMB_GT:
+        return STATS_BOMB_GT[name]
+    
+    # 3. Heuristics
     if primary == 'GK':
         return 'GK'
     elif primary == 'D':
@@ -308,9 +330,10 @@ with open('src/data/clubColors.ts', 'w', encoding='utf-8') as f:
 
 print(f'Wrote {len(players_out)} players')
 
+# Verify specific players
 for p in players_out:
-    if 'alexis' in p['name'].lower() or 'trent' in p['name'].lower():
-        print(p['name'], p['club'], p['season'], 'role:', p['role'])
+    if 'mcneil' in p['name'].lower() or 'garner' in p['name'].lower():
+        print(f'{p["name"]} | {p["club"]} {p["season"]} | role={p["role"]}')
 
 from collections import Counter
 roles = Counter(p['role'] for p in players_out)

@@ -1,4 +1,4 @@
-import type { Player, Position } from '../types/game'
+import type { Player, Position, Role } from '../types/game'
 
 export interface ClubSeasonCombo {
   club: string
@@ -18,14 +18,18 @@ export function getPlayersForCombo(
   players: Player[],
   combo: ClubSeasonCombo,
   usedPlayers: Set<string>,
+  usedPlayerNames: Set<string>,
   openPositions: Position[],
+  openRoles?: Role[],
 ): Player[] {
   return players.filter(
     (p) =>
       p.club === combo.club &&
       p.season === combo.season &&
       !usedPlayers.has(p.id) &&
-      openPositions.includes(p.position),
+      !usedPlayerNames.has(p.name) &&
+      openPositions.includes(p.position) &&
+      (openRoles ? openRoles.includes(p.role) : true),
   )
 }
 
@@ -33,7 +37,9 @@ export function hasSelectablePlayers(
   players: Player[],
   combo: ClubSeasonCombo,
   usedPlayers: Set<string>,
+  usedPlayerNames: Set<string>,
   openPositions: Position[],
+  openRoles?: Role[],
 ): boolean {
-  return getPlayersForCombo(players, combo, usedPlayers, openPositions).length > 0
+  return getPlayersForCombo(players, combo, usedPlayers, usedPlayerNames, openPositions, openRoles).length > 0
 }

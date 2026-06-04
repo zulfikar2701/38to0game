@@ -5,7 +5,6 @@ import { SlotMachine } from './components/SlotMachine'
 import { PlayerList } from './components/PlayerList'
 import { PitchDiagram } from './components/PitchDiagram'
 import { ResultScreen } from './components/ResultScreen'
-import { SkipButton } from './components/SkipButton'
 import { Logo } from './components/Logo'
 import type { GameMode } from './types/game'
 
@@ -28,7 +27,8 @@ function App() {
     hasSpun,
     startGame,
     spinSlot,
-    useSkip,
+    skipClub,
+    skipSeason,
     selectPlayer,
     assignPlayerToSlot,
     removePlayerFromSlot,
@@ -38,12 +38,31 @@ function App() {
   } = useGameStore()
 
   const [selectedMode, setSelectedMode] = useState<GameMode>('classic')
-  const [isSpinning, setIsSpinning] = useState(false)
+  const [spinningClub, setSpinningClub] = useState(false)
+  const [spinningSeason, setSpinningSeason] = useState(false)
+
+  const isAnySpinning = spinningClub || spinningSeason
 
   const handleSpin = () => {
-    setIsSpinning(true)
+    setSpinningClub(true)
+    setSpinningSeason(true)
     spinSlot()
-    setTimeout(() => setIsSpinning(false), 1500)
+    setTimeout(() => {
+      setSpinningClub(false)
+      setSpinningSeason(false)
+    }, 1500)
+  }
+
+  const handleSkipClub = () => {
+    setSpinningClub(true)
+    skipClub()
+    setTimeout(() => setSpinningClub(false), 1500)
+  }
+
+  const handleSkipSeason = () => {
+    setSpinningSeason(true)
+    skipSeason()
+    setTimeout(() => setSpinningSeason(false), 1500)
   }
 
   const handleConfirm = () => {
@@ -71,6 +90,8 @@ function App() {
     W: 'LW / RW',
     ST: 'ST',
   }
+
+  const canSkip = hasSpun && !isAnySpinning && skipsRemaining > 0 && currentCombo !== null
 
   return (
     <div className="min-h-screen bg-38-bg text-38-text font-sans selection:bg-38-gold/30">
@@ -146,27 +167,51 @@ function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-38-muted">{filledCount}/11 picked</span>
-                  <SkipButton
-                    skipsRemaining={skipsRemaining}
-                    onSkip={useSkip}
-                    disabled={isSpinning || skipsRemaining === 0 || !hasSpun}
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-38-muted uppercase tracking-wider">
+                      {skipsRemaining} skip{skipsRemaining === 1 ? '' : 's'}
+                    </span>
+                    <button
+                      onClick={handleSkipClub}
+                      disabled={!canSkip}
+                      className={[
+                        'rounded border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-all',
+                        canSkip
+                          ? 'border-white/20 bg-white/[0.04] text-white hover:bg-white/[0.08] cursor-pointer'
+                          : 'border-white/5 text-white/20 cursor-not-allowed opacity-40',
+                      ].join(' ')}
+                    >
+                      Skip Team
+                    </button>
+                    <button
+                      onClick={handleSkipSeason}
+                      disabled={!canSkip}
+                      className={[
+                        'rounded border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-all',
+                        canSkip
+                          ? 'border-amber-400/20 bg-amber-400/[0.04] text-amber-300 hover:bg-amber-400/[0.08] cursor-pointer'
+                          : 'border-white/5 text-white/20 cursor-not-allowed opacity-40',
+                      ].join(' ')}
+                    >
+                      Skip Year
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Slot Machine */}
               <SlotMachine
                 combo={currentCombo}
-                isSpinning={isSpinning}
-                onSpinComplete={() => setIsSpinning(false)}
+                spinningClub={spinningClub}
+                spinningSeason={spinningSeason}
               />
 
               {/* Main Layout: always split-screen during drafting */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 {/* Left Panel */}
                 <div className="flex flex-col gap-4">
-                  {/* Show player list when combo is active */}
-                  {currentCombo && !isSpinning && (
+                  {/* Show player list when combo is active and not spinning */}
+                  {currentCombo && !isAnySpinning && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -182,7 +227,7 @@ function App() {
                   )}
 
                   {/* Show SPIN button when no combo */}
-                  {!currentCombo && !isSpinning && (
+                  {!currentCombo && !isAnySpinning && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
