@@ -77,10 +77,10 @@ export function SlotMachine({ combo, spinningClub, spinningSeason }: SlotMachine
   const activeColors = isLocked ? clubColors[combo.club] : undefined
 
   return (
-    <div className="flex items-center justify-center gap-4">
+    <div className="flex items-center justify-center gap-2 sm:gap-4">
       {/* Club Box */}
       <div
-        className="rounded-xl border-2 px-6 py-5 min-w-[170px] text-center backdrop-blur-md shadow-xl transition-all duration-500"
+        className="rounded-xl border-2 px-4 sm:px-6 py-4 sm:py-5 min-w-[130px] sm:min-w-[170px] text-center backdrop-blur-md shadow-xl transition-all duration-500"
         style={{
           backgroundColor: activeColors ? `${activeColors.primary}15` : 'rgba(255,255,255,0.03)',
           borderColor: activeColors ? `${activeColors.primary}60` : 'rgba(255,255,255,0.08)',
@@ -97,7 +97,7 @@ export function SlotMachine({ combo, spinningClub, spinningSeason }: SlotMachine
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.04 }}
-            className="text-xl font-black text-white block tracking-tight"
+            className="text-base sm:text-xl font-black text-white block tracking-tight"
           >
             {displayClub}
           </motion.span>
@@ -129,7 +129,7 @@ export function SlotMachine({ combo, spinningClub, spinningSeason }: SlotMachine
 
       {/* Season Box */}
       <div
-        className="rounded-xl border-2 px-6 py-5 min-w-[150px] text-center backdrop-blur-md shadow-xl transition-all duration-500"
+        className="rounded-xl border-2 px-4 sm:px-6 py-4 sm:py-5 min-w-[110px] sm:min-w-[150px] text-center backdrop-blur-md shadow-xl transition-all duration-500"
         style={{
           backgroundColor: isLocked ? 'rgba(251,191,36,0.05)' : 'rgba(255,255,255,0.03)',
           borderColor: isLocked ? 'rgba(251,191,36,0.40)' : 'rgba(255,255,255,0.08)',
@@ -146,7 +146,7 @@ export function SlotMachine({ combo, spinningClub, spinningSeason }: SlotMachine
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.04 }}
-            className="text-xl font-black text-white block tracking-tight"
+            className="text-base sm:text-xl font-black text-white block tracking-tight"
           >
             {displaySeason}
           </motion.span>
