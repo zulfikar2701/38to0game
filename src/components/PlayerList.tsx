@@ -1,4 +1,4 @@
-import type { Player } from '../types/game'
+import type { Player, Position } from '../types/game'
 import { isFWDStats, isMIDStats, isDEFStats, isGKStats } from '../engine/aggregation'
 
 interface PlayerListProps {
@@ -8,40 +8,46 @@ interface PlayerListProps {
   currentCombo: { club: string; season: string } | null
 }
 
-const POSITION_ORDER = ['GK', 'DEF', 'MID', 'FWD'] as const
+const POSITION_LABEL: Record<Position, string> = {
+  GK: 'GK',
+  DEF: 'DEF',
+  MID: 'MID',
+  FWD: 'FWD',
+}
 
-const POSITION_LABELS: Record<string, string> = {
-  GK: 'Goalkeepers',
-  DEF: 'Defenders',
-  MID: 'Midfielders',
-  FWD: 'Forwards',
+const POSITION_COLOR: Record<Position, string> = {
+  GK: '#A855F7',
+  DEF: '#3B82F6',
+  MID: '#22C55E',
+  FWD: '#EF4444',
 }
 
 function formatStats(player: Player): string {
   const stats = player.stats
   if (isFWDStats(stats)) {
-    return `${stats.goals}G · ${stats.assists}A · ${stats.shots}Sh`
+    return `${stats.goals}G · ${stats.assists}A`
   }
   if (isMIDStats(stats)) {
     return `${stats.goals}G · ${stats.assists}A · ${stats.keyPasses.toFixed(1)}KP`
   }
   if (isDEFStats(stats)) {
-    return `${stats.tackles.toFixed(1)}Tkl`
+    return `${stats.tackles.toFixed(1)}Tkl · ${stats.interceptions.toFixed(1)}Int`
   }
   if (isGKStats(stats)) {
-    return `${stats.cleanSheets}CS`
+    return `${stats.cleanSheets}CS · ${stats.saves}Sv`
   }
   return ''
 }
 
+function getGoals(player: Player): number {
+  const stats = player.stats
+  if ('goals' in stats) return stats.goals
+  return 0
+}
+
 export function PlayerList({ players, selectedPlayerId, onSelect, currentCombo }: PlayerListProps) {
-  const grouped = new Map<string, Player[]>()
-  for (const pos of POSITION_ORDER) {
-    const filtered = players.filter((p) => p.position === pos)
-    if (filtered.length > 0) {
-      grouped.set(pos, filtered)
-    }
-  }
+  // Sort by goals descending
+  const sorted = [...players].sort((a, b) => getGoals(b) - getGoals(a))
 
   return (
     <div className="flex flex-col gap-5">
@@ -51,41 +57,69 @@ export function PlayerList({ players, selectedPlayerId, onSelect, currentCombo }
         </div>
       )}
 
-      <div className="flex flex-col gap-5 max-h-[65vh] overflow-y-auto pr-1">
-        {Array.from(grouped.entries()).map(([pos, posPlayers]) => (
-          <div key={pos} className="flex flex-col gap-1.5">
-            <h4 className="text-[10px] font-semibold text-38-muted uppercase tracking-wider">
-              {POSITION_LABELS[pos]} · {posPlayers.length}
-            </h4>
-            {posPlayers.map((player) => {
-              const isSelected = selectedPlayerId === player.id
-              return (
-                <button
-                  key={player.id}
-                  onClick={() => onSelect(player.id)}
-                  className={[
-                    'w-full text-left rounded-md border px-3 py-2 transition-all',
-                    isSelected
-                      ? 'bg-white/5 border-white/20'
-                      : 'border-transparent hover:bg-white/[0.02] hover:border-white/10',
-                  ].join(' ')}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-medium text-white truncate">{player.name}</span>
-                      <span className="text-[11px] text-38-muted truncate">
-                        {player.club} · {player.appearances} apps
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-mono text-38-muted whitespace-nowrap">
-                      {formatStats(player)}
+      <div className="flex flex-col gap-2 max-h-[65vh] overflow-y-auto pr-1">
+        {sorted.map((player) => {
+          const isSelected = selectedPlayerId === player.id
+          const colors = player.clubColors
+          const pos = player.position
+          const posColor = POSITION_COLOR[pos]
+
+          return (
+            <button
+              key={player.id}
+              onClick={() => onSelect(player.id)}
+              className={[
+                'w-full text-left rounded-xl border px-4 py-3 transition-all backdrop-blur-sm',
+                isSelected
+                  ? 'bg-white/[0.08] border-white/30 shadow-lg shadow-black/20'
+                  : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] hover:border-white/20 hover:shadow-lg hover:shadow-black/10',
+              ].join(' ')}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                      style={{
+                        backgroundColor: `${posColor}20`,
+                        color: posColor,
+                      }}
+                    >
+                      {POSITION_LABEL[pos]}
                     </span>
+                    {player.positions.length > 1 && (
+                      <span className="text-[10px] text-38-muted/60">
+                        {player.positions.filter((p) => p !== pos).join(', ')}
+                      </span>
+                    )}
                   </div>
-                </button>
-              )
-            })}
-          </div>
-        ))}
+                  <span className="text-sm font-semibold text-white mt-1 truncate">{player.name}</span>
+                  <span className="text-[11px] text-38-muted truncate">
+                    {player.club} · {player.season} · {player.appearances} apps
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span
+                    className="text-xs font-bold"
+                    style={{ color: colors.primary }}
+                  >
+                    {formatStats(player)}
+                  </span>
+                  <div className="flex gap-1">
+                    <span
+                      className="w-4 h-1 rounded-full"
+                      style={{ backgroundColor: colors.primary }}
+                    />
+                    <span
+                      className="w-4 h-1 rounded-full"
+                      style={{ backgroundColor: colors.accent }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </button>
+          )
+        })}
 
         {players.length === 0 && (
           <div className="text-center text-38-muted py-8 text-sm">

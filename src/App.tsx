@@ -6,6 +6,7 @@ import { PlayerList } from './components/PlayerList'
 import { PitchDiagram } from './components/PitchDiagram'
 import { ResultScreen } from './components/ResultScreen'
 import { SkipButton } from './components/SkipButton'
+import { Logo } from './components/Logo'
 import type { GameMode } from './types/game'
 
 const pageVariants = {
@@ -71,7 +72,8 @@ function App() {
               exit="exit"
               className="flex flex-col items-center justify-center min-h-[80vh] gap-10"
             >
-              <div className="text-center space-y-3">
+              <div className="text-center space-y-4">
+                <Logo className="w-20 h-20 mx-auto" />
                 <h1 className="text-7xl font-bold tracking-tight text-white">38-0</h1>
                 <p className="text-lg text-38-muted">Draft an all-time XI. Chase the perfect season.</p>
                 <p className="text-sm text-38-muted/60">Premier League · 2015–2025</p>

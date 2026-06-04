@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { ClubSeasonCombo } from '../data/combos'
+import { clubColors } from '../data/clubColors'
 
 interface SlotMachineProps {
   combo: ClubSeasonCombo | null
@@ -24,6 +25,8 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
   const [display, setDisplay] = useState({ club: '—', season: '—' })
   const iterationRef = useRef(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const activeColors = combo ? clubColors[combo.club] : undefined
 
   useEffect(() => {
     if (isSpinning) {
@@ -60,7 +63,14 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="bg-38-surface rounded-lg border border-38-border px-8 py-5 flex items-center justify-center gap-6 min-w-[280px]">
+      <div
+        className="rounded-xl border px-8 py-5 flex items-center justify-center gap-6 min-w-[280px] backdrop-blur-md shadow-xl"
+        style={{
+          backgroundColor: activeColors ? `${activeColors.primary}15` : 'rgba(255,255,255,0.03)',
+          borderColor: activeColors ? `${activeColors.primary}40` : 'rgba(255,255,255,0.08)',
+          boxShadow: activeColors ? `0 8px 32px ${activeColors.primary}15` : 'none',
+        }}
+      >
         <div className="flex-1 text-center">
           <AnimatePresence mode="wait">
             <motion.span
@@ -69,14 +79,15 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.04 }}
-              className="text-xl font-semibold text-white block tracking-tight"
+              className="text-xl font-bold block tracking-tight"
+              style={{ color: activeColors?.primary ?? '#fff' }}
             >
               {display.club}
             </motion.span>
           </AnimatePresence>
         </div>
 
-        <span className="text-xl text-38-muted font-light">|</span>
+        <span className="text-xl text-white/20 font-light">|</span>
 
         <div className="flex-1 text-center">
           <AnimatePresence mode="wait">
@@ -94,14 +105,21 @@ export function SlotMachine({ combo, isSpinning, onSpinComplete }: SlotMachinePr
         </div>
       </div>
 
-      {isLocked && (
-        <motion.span
+      {isLocked && activeColors && (
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xs font-medium text-38-muted uppercase tracking-widest"
+          className="flex gap-1"
         >
-          Locked
-        </motion.span>
+          <span
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: activeColors.primary }}
+          />
+          <span
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: activeColors.accent }}
+          />
+        </motion.div>
       )}
     </div>
   )

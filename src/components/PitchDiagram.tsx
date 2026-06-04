@@ -31,7 +31,7 @@ export function PitchDiagram({
   onSlotRemove,
 }: Props) {
   return (
-    <div className="w-full max-w-sm mx-auto aspect-[3/4] bg-[#0f2e1f] rounded-lg overflow-hidden border border-white/5 relative select-none">
+    <div className="w-full max-w-sm mx-auto aspect-[3/4] bg-[#0f2e1f] rounded-xl overflow-hidden border border-white/5 relative select-none shadow-2xl">
       <svg viewBox="0 0 300 400" className="w-full h-full">
         {/* Field */}
         <rect x="0" y="0" width="300" height="400" fill="#0f2e1f" />
@@ -51,6 +51,7 @@ export function PitchDiagram({
             : dot.label
 
           const isClickable = !isFilled && selectedPlayerId !== null
+          const colors = isFilled ? slot.player!.clubColors : null
 
           const circle = (
             <g
@@ -67,35 +68,50 @@ export function PitchDiagram({
               <circle
                 cx={dot.x}
                 cy={dot.y}
-                r={isFilled ? 22 : 18}
-                fill={isFilled ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)'}
-                stroke={isClickable ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)'}
-                strokeWidth={isClickable ? 2 : 1}
+                r={isFilled ? 24 : 18}
+                fill={colors ? `${colors.primary}25` : 'rgba(255,255,255,0.03)'}
+                stroke={isClickable ? 'rgba(255,255,255,0.5)' : colors ? colors.primary : 'rgba(255,255,255,0.15)'}
+                strokeWidth={isClickable ? 2 : isFilled ? 2.5 : 1}
               />
               <text
                 x={dot.x}
                 y={dot.y - 3}
                 textAnchor="middle"
                 dominantBaseline="central"
-                fill={isFilled ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'}
+                fill={isFilled ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
                 fontSize={isFilled ? 8 : 9}
                 fontWeight={isFilled ? '600' : '400'}
                 fontFamily="system-ui, sans-serif"
               >
                 {label.length > 8 ? label.substring(0, 7) + '..' : label}
               </text>
-              {isFilled && (
-                <text
-                  x={dot.x}
-                  y={dot.y + 10}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fill="rgba(255,255,255,0.4)"
-                  fontSize={6}
-                  fontFamily="system-ui, sans-serif"
-                >
-                  {slot.player!.club}
-                </text>
+              {isFilled && colors && (
+                <>
+                  <text
+                    x={dot.x}
+                    y={dot.y + 10}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={colors.primary}
+                    fontSize={6}
+                    fontFamily="system-ui, sans-serif"
+                    fontWeight="600"
+                  >
+                    {slot.player!.club}
+                  </text>
+                  <circle
+                    cx={dot.x + 18}
+                    cy={dot.y - 14}
+                    r="4"
+                    fill={colors.primary}
+                  />
+                  <circle
+                    cx={dot.x + 22}
+                    cy={dot.y - 14}
+                    r="4"
+                    fill={colors.accent}
+                  />
+                </>
               )}
             </g>
           )

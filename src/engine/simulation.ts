@@ -126,49 +126,46 @@ export function runFullSimulation(
   let totalGF = 0
   let totalGA = 0
 
-  // 38 games: each opponent twice
-  let gameweek = 1
+  // Generate fixtures: each opponent twice, home/away randomized and shuffled
+  const fixtures: { opponent: Opponent; home: boolean }[] = []
+
+  // First half: play each opponent once, random home/away
   for (const opponent of opponents) {
-    // Home
-    {
-      const { goalsFor, goalsAgainst } = simulateMatch(pillars, opponent, true, rng)
-      const result: 'W' | 'D' | 'L' = goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L'
-      const points = result === 'W' ? 3 : result === 'D' ? 1 : 0
-      matches.push({
-        gameweek,
-        opponent: opponent.name,
-        home: true,
-        goalsFor,
-        goalsAgainst,
-        result,
-        points,
-        commentary: generateMatchCommentary(pillars, opponent, goalsFor, goalsAgainst, true),
-      })
-      totalPoints += points
-      totalGF += goalsFor
-      totalGA += goalsAgainst
-      gameweek++
-    }
-    // Away
-    {
-      const { goalsFor, goalsAgainst } = simulateMatch(pillars, opponent, false, rng)
-      const result: 'W' | 'D' | 'L' = goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L'
-      const points = result === 'W' ? 3 : result === 'D' ? 1 : 0
-      matches.push({
-        gameweek,
-        opponent: opponent.name,
-        home: false,
-        goalsFor,
-        goalsAgainst,
-        result,
-        points,
-        commentary: generateMatchCommentary(pillars, opponent, goalsFor, goalsAgainst, false),
-      })
-      totalPoints += points
-      totalGF += goalsFor
-      totalGA += goalsAgainst
-      gameweek++
-    }
+    fixtures.push({ opponent, home: rng() < 0.5 })
+  }
+
+  // Second half: return fixtures with reversed venue
+  for (const f of fixtures.slice(0, 19)) {
+    fixtures.push({ opponent: f.opponent, home: !f.home })
+  }
+
+  // Shuffle all 38 fixtures so return games are interleaved, not paired
+  for (let i = fixtures.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    const temp = fixtures[i]
+    fixtures[i] = fixtures[j]
+    fixtures[j] = temp
+  }
+
+  let gameweek = 1
+  for (const fixture of fixtures) {
+    const { goalsFor, goalsAgainst } = simulateMatch(pillars, fixture.opponent, fixture.home, rng)
+    const result: 'W' | 'D' | 'L' = goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L'
+    const points = result === 'W' ? 3 : result === 'D' ? 1 : 0
+    matches.push({
+      gameweek,
+      opponent: fixture.opponent.name,
+      home: fixture.home,
+      goalsFor,
+      goalsAgainst,
+      result,
+      points,
+      commentary: generateMatchCommentary(pillars, fixture.opponent, goalsFor, goalsAgainst, fixture.home),
+    })
+    totalPoints += points
+    totalGF += goalsFor
+    totalGA += goalsAgainst
+    gameweek++
   }
 
   // Build league table: user + 19 opponents with their own simulated seasons

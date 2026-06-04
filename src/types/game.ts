@@ -29,15 +29,22 @@ export interface FWDStats {
 
 export type PositionStats = GKStats | DEFStats | MIDStats | FWDStats
 
+export interface ClubColors {
+  primary: string
+  accent: string
+}
+
 export interface Player {
   id: string
   name: string
   club: string
   season: string
   position: Position
+  positions: Position[]
   appearances: number
   stats: PositionStats
   eraAdjusted: PositionStats
+  clubColors: ClubColors
 }
 
 export interface SquadSlot {
