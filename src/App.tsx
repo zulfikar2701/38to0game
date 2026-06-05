@@ -8,7 +8,7 @@ import { ResultScreen } from './components/ResultScreen'
 import { AssignModal } from './components/AssignModal'
 import { Logo } from './components/Logo'
 import { clubColors } from './data/clubColors'
-import type { GameMode } from './types/game'
+import type { GameMode, Era } from './types/game'
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -40,6 +40,7 @@ function App() {
   } = useGameStore()
 
   const [selectedMode, setSelectedMode] = useState<GameMode>('classic')
+  const [selectedEra, setSelectedEra] = useState<Era>('all')
   const [spinningClub, setSpinningClub] = useState(false)
   const [spinningSeason, setSpinningSeason] = useState(false)
 
@@ -82,7 +83,7 @@ function App() {
 
   const handlePlayAgain = () => {
     resetGame()
-    startGame('classic')
+    startGame(selectedMode, selectedEra)
   }
 
   const filledCount = formation.filter((s) => s.player !== null).length
@@ -112,10 +113,38 @@ function App() {
                 <Logo className="w-20 h-20 mx-auto" />
                 <h1 className="text-7xl font-bold tracking-tight text-white">38-0</h1>
                 <p className="text-lg text-38-muted">Draft an all-time XI. Chase the perfect season.</p>
-                <p className="text-sm text-38-muted/60">Premier League · 2015–2025</p>
+                <p className="text-sm text-38-muted/60">Premier League · 1992–2026 · 18,000+ players</p>
               </div>
 
-              <div className="flex flex-col gap-4 w-full max-w-xs">
+              <div className="flex flex-col gap-4 w-full max-w-sm">
+                {/* Era selector */}
+                <div className="space-y-2">
+                  <p className="text-[10px] text-38-muted uppercase tracking-wider text-center">Select Era</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { key: '90s' as Era, label: '90s Classics', years: '1992–99' },
+                      { key: '00s' as Era, label: '00s Nostalgia', years: '1999–09' },
+                      { key: '10s' as Era, label: '10s Modern', years: '2009–19' },
+                      { key: '20s' as Era, label: '20s Current', years: '2019–26' },
+                      { key: 'all' as Era, label: 'All-Time', years: '1992–26' },
+                    ]).map((era) => (
+                      <button
+                        key={era.key}
+                        onClick={() => setSelectedEra(era.key)}
+                        className={`py-2 rounded border text-xs font-medium transition-all ${
+                          selectedEra === era.key
+                            ? 'border-white/30 bg-white/5 text-white'
+                            : 'border-38-border text-38-muted hover:border-white/20'
+                        } ${era.key === 'all' ? 'col-span-3' : ''}`}
+                      >
+                        <span className="block font-semibold">{era.label}</span>
+                        <span className="block text-[10px] opacity-60">{era.years}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mode selector */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => setSelectedMode('classic')}
@@ -140,7 +169,7 @@ function App() {
                 </div>
 
                 <button
-                  onClick={() => startGame(selectedMode)}
+                  onClick={() => startGame(selectedMode, selectedEra)}
                   className="w-full py-3.5 bg-white text-38-bg font-semibold text-base rounded hover:bg-white/90 transition-colors"
                 >
                   Start Draft

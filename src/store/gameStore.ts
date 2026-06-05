@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type {
   GamePhase,
   GameMode,
+  Era,
   Formation,
   Position,
   Role,
@@ -9,7 +10,7 @@ import type {
   SimulationResult,
 } from '../types/game'
 import type { ClubSeasonCombo } from '../data/combos'
-import { players } from '../data/players'
+import { players, getPlayersByEra } from '../data/players'
 import {
   buildCombos,
   getPlayersForCombo,
@@ -58,6 +59,8 @@ export function getOpenRoles(formation: Formation): Role[] {
 interface GameState {
   phase: GamePhase
   mode: GameMode
+  era: Era
+  eraPlayers: Player[]
   round: number
   formation: Formation
   skipsRemaining: number
@@ -70,7 +73,7 @@ interface GameState {
   selectedPlayerId: string | null
   hasSpun: boolean
 
-  startGame: (mode: GameMode) => void
+  startGame: (mode: GameMode, era: Era) => void
   spinSlot: () => void
   useSkip: () => void
   skipClub: () => void
@@ -86,6 +89,8 @@ interface GameState {
 const initialState = {
   phase: 'menu' as GamePhase,
   mode: 'classic' as GameMode,
+  era: 'all' as Era,
+  eraPlayers: players,
   round: 1,
   formation: createEmptyFormation(),
   skipsRemaining: 2,
@@ -102,10 +107,13 @@ const initialState = {
 export const useGameStore = create<GameState>((set, get) => ({
   ...initialState,
 
-  startGame: (mode: GameMode) => {
+  startGame: (mode: GameMode, era: Era) => {
+    const eraPlayers = getPlayersByEra(era)
     set({
       phase: 'drafting',
       mode,
+      era,
+      eraPlayers,
       round: 1,
       formation: createEmptyFormation(),
       skipsRemaining: 2,
@@ -114,17 +122,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       usedPlayers: new Set<string>(),
       usedPlayerNames: new Set<string>(),
       simulationResult: null,
+      combos: buildCombos(eraPlayers),
       selectedPlayerId: null,
       hasSpun: false,
     })
   },
 
   spinSlot: () => {
-    const { formation, usedPlayers, usedPlayerNames, combos } = get()
+    const { formation, usedPlayers, usedPlayerNames, combos, eraPlayers } = get()
     const openPositions = getOpenPositions(formation)
     const openRoles = getOpenRoles(formation)
     const validCombos = combos.filter((combo) =>
-      hasSelectablePlayers(players, combo, usedPlayers, usedPlayerNames, openPositions, openRoles),
+      hasSelectablePlayers(eraPlayers, combo, usedPlayers, usedPlayerNames, openPositions, openRoles),
     )
 
     if (validCombos.length === 0) {
@@ -135,7 +144,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const randomCombo =
       validCombos[Math.floor(Math.random() * validCombos.length)]
     const available = getPlayersForCombo(
-      players,
+      eraPlayers,
       randomCombo,
       usedPlayers,
       usedPlayerNames,
@@ -160,7 +169,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   skipClub: () => {
-    const { formation, usedPlayers, usedPlayerNames, combos, currentCombo, skipsRemaining } = get()
+    const { formation, usedPlayers, usedPlayerNames, combos, currentCombo, skipsRemaining, eraPlayers } = get()
     if (!currentCombo || skipsRemaining === 0) return
 
     const openPositions = getOpenPositions(formation)
@@ -169,12 +178,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     const sameSeasonCombos = combos.filter((c) =>
       c.season === currentCombo.season &&
       c.club !== currentCombo.club &&
-      hasSelectablePlayers(players, c, usedPlayers, usedPlayerNames, openPositions, openRoles),
+      hasSelectablePlayers(eraPlayers, c, usedPlayers, usedPlayerNames, openPositions, openRoles),
     )
 
     if (sameSeasonCombos.length > 0) {
       const newCombo = sameSeasonCombos[Math.floor(Math.random() * sameSeasonCombos.length)]
-      const available = getPlayersForCombo(players, newCombo, usedPlayers, usedPlayerNames, openPositions, openRoles)
+      const available = getPlayersForCombo(eraPlayers, newCombo, usedPlayers, usedPlayerNames, openPositions, openRoles)
       set({
         currentCombo: newCombo,
         availablePlayers: available,
@@ -188,7 +197,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   skipSeason: () => {
-    const { formation, usedPlayers, usedPlayerNames, combos, currentCombo, skipsRemaining } = get()
+    const { formation, usedPlayers, usedPlayerNames, combos, currentCombo, skipsRemaining, eraPlayers } = get()
     if (!currentCombo || skipsRemaining === 0) return
 
     const openPositions = getOpenPositions(formation)
@@ -197,12 +206,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     const sameClubCombos = combos.filter((c) =>
       c.club === currentCombo.club &&
       c.season !== currentCombo.season &&
-      hasSelectablePlayers(players, c, usedPlayers, usedPlayerNames, openPositions, openRoles),
+      hasSelectablePlayers(eraPlayers, c, usedPlayers, usedPlayerNames, openPositions, openRoles),
     )
 
     if (sameClubCombos.length > 0) {
       const newCombo = sameClubCombos[Math.floor(Math.random() * sameClubCombos.length)]
-      const available = getPlayersForCombo(players, newCombo, usedPlayers, usedPlayerNames, openPositions, openRoles)
+      const available = getPlayersForCombo(eraPlayers, newCombo, usedPlayers, usedPlayerNames, openPositions, openRoles)
       set({
         currentCombo: newCombo,
         availablePlayers: available,

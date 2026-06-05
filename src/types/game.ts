@@ -126,6 +126,8 @@ export type GamePhase =
 
 export type GameMode = 'classic' | 'blind'
 
+export type Era = '90s' | '00s' | '10s' | '20s' | 'all'
+
 export interface DraftState {
   round: number // 1-11
   formation: Formation
