@@ -86,6 +86,31 @@ export function ResultScreen({ result, onPlayAgain }: ResultScreenProps) {
         <p className="text-sm text-38-muted">Season {seasonRange} · Premier League</p>
       </motion.div>
 
+      {/* Final Verdict Badge */}
+      {result.quadruple && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.05 }}
+          className="text-center"
+        >
+          <div className={[
+            'inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold',
+            result.quadruple.trophies === 4 ? 'text-purple-300 border-purple-400/30 bg-purple-400/10' :
+            result.quadruple.trophies === 3 ? 'text-yellow-300 border-yellow-400/30 bg-yellow-400/10' :
+            result.quadruple.trophies === 2 ? 'text-amber-300 border-amber-400/30 bg-amber-400/10' :
+            result.quadruple.trophies === 1 ? 'text-emerald-300 border-emerald-400/30 bg-emerald-400/10' :
+            'text-red-300 border-red-400/30 bg-red-400/10',
+          ].join(' ')}>
+            {result.quadruple.trophies === 4 ? '🏆🏆🏆🏆 THE QUADRUPLE' :
+             result.quadruple.trophies === 3 ? '🏆🏆🏆 TREBLE WINNERS' :
+             result.quadruple.trophies === 2 ? '🏆🏆 DOUBLE WINNERS' :
+             result.quadruple.trophies === 1 ? '🏆 SINGLE GLORY' :
+             '❌ TROPHY-LESS'}
+          </div>
+        </motion.div>
+      )}
+
       {/* Key Stats Cards */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -136,75 +161,73 @@ export function ResultScreen({ result, onPlayAgain }: ResultScreenProps) {
       </motion.div>
 
       {/* Player Awards */}
-      {result.playerStats.length > 0 && (
+      {result.quadruple?.awards && result.quadruple.awards.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.17 }}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
         >
-          {/* Player of the Season */}
-          {(() => {
-            const poty = [...result.playerStats].sort((a, b) => b.rating - a.rating)[0]
-            if (!poty) return null
-            const colors = clubColors[poty.club] || { primary: '#fff', accent: '#000' }
-            return (
-              <div
-                className="rounded-xl border border-38-border/40 bg-white/[0.03] backdrop-blur-sm px-4 py-4 flex flex-col gap-2"
-                style={{ borderColor: `${colors.primary}30` }}
-              >
-                <span className="text-[10px] font-semibold text-38-muted uppercase tracking-wider">Player of the Season</span>
-                <span className="text-sm font-bold text-white truncate">{poty.name}</span>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.primary }} />
-                  <span className="text-[10px] text-38-muted">{poty.club} · {poty.season}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {result.quadruple.awards.map((award) => {
+              const colors = clubColors[award.player.club] || { primary: '#fff', accent: '#000' }
+              return (
+                <div
+                  key={award.type}
+                  className="rounded-xl border border-38-border/40 bg-white/[0.03] backdrop-blur-sm px-4 py-4 flex flex-col gap-2"
+                  style={{ borderColor: `${colors.primary}30` }}
+                >
+                  <span className="text-[10px] font-semibold text-38-muted uppercase tracking-wider">
+                    {award.type === 'topScorer' ? '🥇 Top Scorer' :
+                     award.type === 'mostAssists' ? '🅰️ Most Assists' : '⭐ Player of the Season'}
+                  </span>
+                  <span className="text-sm font-bold text-white truncate">{award.player.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.primary }} />
+                    <span className="text-[10px] text-38-muted">{award.player.club} · {award.player.season}</span>
+                  </div>
+                  {award.value > 0 && (
+                    <span className="text-xs text-white/70">
+                      {award.type === 'topScorer' ? 'Goals' : 'Assists'}: <span className="font-bold text-white">{award.value}</span>
+                    </span>
+                  )}
                 </div>
-                <span className="text-xs text-white/70">Rating: <span className="font-bold text-white">{poty.rating}</span></span>
-              </div>
-            )
-          })()}
+              )
+            })}
+          </div>
+        </motion.div>
+      )}
 
-          {/* Top Scorer */}
-          {(() => {
-            const top = [...result.playerStats].sort((a, b) => b.goals - a.goals)[0]
-            if (!top || top.goals === 0) return null
-            const colors = clubColors[top.club] || { primary: '#fff', accent: '#000' }
-            return (
-              <div
-                className="rounded-xl border border-38-border/40 bg-white/[0.03] backdrop-blur-sm px-4 py-4 flex flex-col gap-2"
-                style={{ borderColor: `${colors.primary}30` }}
-              >
-                <span className="text-[10px] font-semibold text-38-muted uppercase tracking-wider">Top Scorer</span>
-                <span className="text-sm font-bold text-white truncate">{top.name}</span>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.primary }} />
-                  <span className="text-[10px] text-38-muted">{top.club} · {top.season}</span>
-                </div>
-                <span className="text-xs text-white/70">Goals: <span className="font-bold text-white">{top.goals}</span></span>
-              </div>
-            )
-          })()}
-
-          {/* Most Assists */}
-          {(() => {
-            const ma = [...result.playerStats].sort((a, b) => b.assists - a.assists)[0]
-            if (!ma || ma.assists === 0) return null
-            const colors = clubColors[ma.club] || { primary: '#fff', accent: '#000' }
-            return (
-              <div
-                className="rounded-xl border border-38-border/40 bg-white/[0.03] backdrop-blur-sm px-4 py-4 flex flex-col gap-2"
-                style={{ borderColor: `${colors.primary}30` }}
-              >
-                <span className="text-[10px] font-semibold text-38-muted uppercase tracking-wider">Most Assists</span>
-                <span className="text-sm font-bold text-white truncate">{ma.name}</span>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.primary }} />
-                  <span className="text-[10px] text-38-muted">{ma.club} · {ma.season}</span>
-                </div>
-                <span className="text-xs text-white/70">Assists: <span className="font-bold text-white">{ma.assists}</span></span>
-              </div>
-            )
-          })()}
+      {/* Quadruple Results */}
+      {result.quadruple && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.175 }}
+          className="rounded-xl border border-38-border/40 bg-white/[0.03] backdrop-blur-sm px-4 py-4"
+        >
+          <div className="flex flex-col gap-2 text-center">
+            <span className="text-[10px] text-38-muted uppercase tracking-wider">The Quadruple</span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {[
+                { name: 'Community Shield', result: result.quadruple.communityShield },
+                { name: 'Premier League', result: result.quadruple.premierLeague },
+                { name: 'FA Cup', result: result.quadruple.faCup },
+                { name: 'Champions League', result: result.quadruple.championsLeague },
+              ].map((comp) => (
+                <span
+                  key={comp.name}
+                  className={[
+                    'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border',
+                    comp.result.won
+                      ? 'text-yellow-300 border-yellow-400/30 bg-yellow-400/10'
+                      : 'text-white/50 border-white/10',
+                  ].join(' ')}
+                >
+                  {comp.result.won ? '🏆' : '❌'} {comp.name}
+                </span>
+              ))}
+            </div>
+          </div>
         </motion.div>
       )}
 
