@@ -56,3 +56,78 @@ export function generateSeasonCommentary(
 
   return lines
 }
+
+export function generateHeadline(
+  trophies: number,
+  goalsFor: number,
+  goalsAgainst: number,
+  position: number,
+): { headline: string; tagline: string } {
+  // Trophy prefix
+  const prefixes = [
+    'SO NEAR, YET SO FAR',
+    'SINGLE GLORY',
+    'DOUBLE WINNERS',
+    'TREBLE HEROES',
+    'PERFECT SEASON',
+  ]
+  const prefix = prefixes[Math.min(trophies, 4)]
+
+  // Playing style modifier
+  let modifier = ''
+  if (goalsFor >= 90) {
+    modifier = 'GOAL MACHINE'
+  } else if (goalsFor >= 70) {
+    modifier = 'ATTACKING FORCE'
+  } else if (goalsFor >= 50) {
+    modifier = 'SOLID STRIKERS'
+  } else {
+    modifier = 'DEFENSIVE GRIND'
+  }
+
+  let defenseMod = ''
+  if (goalsAgainst < 25) {
+    defenseMod = 'FORTRESS DEFENCE'
+  } else if (goalsAgainst < 40) {
+    defenseMod = 'SOLID AT THE BACK'
+  } else if (goalsAgainst < 60) {
+    defenseMod = 'LEAKY BACKLINE'
+  } else {
+    defenseMod = 'GOAL SHY DEFENCE'
+  }
+
+  let positionMod = ''
+  if (position === 1) {
+    positionMod = 'CHAMPIONS'
+  } else if (position <= 4) {
+    positionMod = 'TOP FOUR FINISH'
+  } else if (position <= 10) {
+    positionMod = 'MID-TABLE STRUGGLE'
+  } else {
+    positionMod = 'DISAPPOINTING CAMPAIGN'
+  }
+
+  let headline = prefix
+  if (trophies > 0) {
+    headline += `: ${modifier}`
+    if (trophies >= 2) {
+      headline += ` CONQUER ALL`
+    }
+  } else {
+    headline += `: ${positionMod}`
+  }
+
+  const taglines = [
+    'Star-studded XI delivers on promise',
+    'Bronze bargains prove astute signings',
+    'Unbeaten in Europe — fortress mentality',
+    'Title race went to the wire',
+    'Dominated from start to finish',
+    'Late surge propels team to glory',
+    'Injury-hit squad overachieves',
+    'Tactical masterclass from the draft',
+  ]
+  const tagline = taglines[Math.floor(Math.random() * taglines.length)]
+
+  return { headline, tagline }
+}
