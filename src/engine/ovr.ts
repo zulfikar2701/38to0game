@@ -7,8 +7,19 @@ export function getTierFromOvr(ovr: number): Tier {
   return 'bronze'
 }
 
+/**
+ * Check if a player's role can fill a given slot role.
+ * FBRef data only has 4 granular roles (GK, CB, CM, ST), but our
+ * formations use FB (fullback) and W (wing) as well. We map flexibly:
+ *   - CB can play FB (center backs can play fullback)
+ *   - CM can play W  (central mids can play wing)
+ *   - ST can play W  (strikers can play wing)
+ */
 export function canPlayRole(playerRole: string, slotRole: string): boolean {
-  return playerRole === slotRole
+  if (playerRole === slotRole) return true
+  if (slotRole === 'FB' && playerRole === 'CB') return true
+  if (slotRole === 'W' && (playerRole === 'CM' || playerRole === 'ST')) return true
+  return false
 }
 
 // Tier draw odds: Bronze 5%, Silver 20%, Gold 45%, Star 30%

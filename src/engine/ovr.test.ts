@@ -29,10 +29,21 @@ describe('canPlayRole', () => {
   it('allows exact role match', () => {
     expect(canPlayRole('ST', 'ST')).toBe(true)
     expect(canPlayRole('GK', 'GK')).toBe(true)
+    expect(canPlayRole('CB', 'CB')).toBe(true)
+    expect(canPlayRole('CM', 'CM')).toBe(true)
+  })
+  it('allows CB to play FB', () => {
+    expect(canPlayRole('CB', 'FB')).toBe(true)
+  })
+  it('allows CM and ST to play W', () => {
+    expect(canPlayRole('CM', 'W')).toBe(true)
+    expect(canPlayRole('ST', 'W')).toBe(true)
   })
   it('rejects mismatched roles', () => {
     expect(canPlayRole('ST', 'GK')).toBe(false)
     expect(canPlayRole('CB', 'ST')).toBe(false)
+    expect(canPlayRole('GK', 'FB')).toBe(false)
+    expect(canPlayRole('GK', 'W')).toBe(false)
   })
 })
 
