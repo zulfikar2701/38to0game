@@ -120,6 +120,7 @@ interface GameState {
   pickCard: (cardIndex: number) => void
   closePicker: () => void
   removeFromSlot: (slotIndex: number) => void
+  rerollSlot: (slotIndex: number) => void
   confirmSquad: () => void
   runSimulation: () => void
   advanceReveal: () => void
@@ -231,6 +232,31 @@ export const useGameStore = create<GameState>((set, get) => ({
       usedPlayerIds: newUsed,
       phase: 'drafting',
     })
+  },
+
+  rerollSlot: (slotIndex: number) => {
+    const { formation, eraPlayers, usedPlayerIds } = get()
+    const slot = formation[slotIndex]
+    if (!slot || !slot.player) return
+
+    log.flow(`rerollSlot(${slotIndex}) → replacing ${slot.player.name}`)
+
+    // Remove current player from used set
+    const newUsed = new Set(usedPlayerIds)
+    newUsed.delete(slot.player.id)
+
+    // Clear the slot
+    const clearedFormation = formation.map((s, i) =>
+      i === slotIndex ? { ...s, player: null } : s,
+    ) as Formation
+
+    set({ formation: clearedFormation, usedPlayerIds: newUsed })
+
+    // Open picker for this slot
+    const availablePlayers = eraPlayers.filter((p) => !newUsed.has(p.id))
+    const pack = generatePack(slot, availablePlayers)
+    set({ currentSlotIndex: slotIndex, currentPack: pack })
+    log.draft(slot.label, pack)
   },
 
   confirmSquad: () => {

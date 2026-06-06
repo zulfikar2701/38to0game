@@ -32,6 +32,7 @@ function App() {
     pickCard,
     closePicker,
     removeFromSlot,
+    rerollSlot,
     confirmSquad,
     advanceReveal,
     resetGame,
@@ -140,6 +141,7 @@ function App() {
                 formation={formation}
                 onSlotClick={openSlotPicker}
                 onSlotRemove={removeFromSlot}
+                onSlotReroll={rerollSlot}
               />
 
               {/* Card Picker Modal */}
@@ -162,7 +164,7 @@ function App() {
               className="flex flex-col items-center gap-8 py-8"
             >
               <h2 className="text-2xl font-semibold text-white">Your Squad</h2>
-              <DraftPitch formation={formation} onSlotClick={() => {}} onSlotRemove={removeFromSlot} />
+              <DraftPitch formation={formation} onSlotClick={() => {}} onSlotRemove={removeFromSlot} onSlotReroll={rerollSlot} />
               <button
                 onClick={confirmSquad}
                 className="px-10 py-3.5 bg-white text-38-bg font-semibold rounded hover:bg-white/90 transition-colors"

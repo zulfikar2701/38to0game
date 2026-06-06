@@ -590,6 +590,7 @@ export function runQuadruple(
     headline,
     tagline,
     awards,
+    _pl: pl,  // full league data for runFullSimulation
   }
 }
 
@@ -599,15 +600,11 @@ export function runFullSimulation(
   formation: Formation,
   seed?: number,
 ): SimulationResult {
-  const quadruple = runQuadruple(formation, seed)
+  const quadruple = runQuadruple(formation, seed) as QuadrupleResult & { _pl?: any }
   const squad = formation.map((s) => s.player).filter(Boolean) as Player[]
-  const rng = seededRandom(seed ?? Math.floor(Math.random() * 1000000))
+  const pl = quadruple._pl || { matches: [], table: [], totalGF: 0, totalGA: 0, points: 0 }
 
-  // Re-simulate league to get match details
-  const userScores = getSquadScores(squad)
-  const pl = simulatePremierLeague(userScores, rng)
-
-  const pos = pl.table.findIndex((t) => t.name === 'Your XI') + 1
+  const pos = pl.table.findIndex((t: any) => t.name === 'Your XI') + 1
   const verdict =
     pos === 1
       ? quadruple.trophies >= 4
@@ -623,6 +620,7 @@ export function runFullSimulation(
               ? 'SURVIVED RELEGATION'
               : 'RELEGATED'
 
+  const rng = seededRandom(seed ?? Math.floor(Math.random() * 1000000))
   const playerStats = squad.map((p) => simulatePlayerSeason(p, rng))
   playerStats.sort((a, b) => b.rating - a.rating)
 
@@ -642,6 +640,15 @@ export function runFullSimulation(
     verdict,
     squad,
     playerStats,
-    quadruple,
+    quadruple: {
+      communityShield: quadruple.communityShield,
+      premierLeague: quadruple.premierLeague,
+      faCup: quadruple.faCup,
+      championsLeague: quadruple.championsLeague,
+      trophies: quadruple.trophies,
+      headline: quadruple.headline,
+      tagline: quadruple.tagline,
+      awards: quadruple.awards,
+    },
   }
 }
