@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { getTierFromOvr, canPlayRole, rollTier, generatePack, calculateSquadStrength } from './ovr'
-import type { Player, DraftSlot, Tier } from '../types/game'
+import type { Player, DraftSlot } from '../types/game'
 
 const mockPlayer = (overrides: Partial<Player> = {}): Player => ({
   id: '1', name: 'Test', club: 'Test FC', season: '2020',

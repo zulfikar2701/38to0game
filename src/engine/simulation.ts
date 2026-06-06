@@ -8,7 +8,6 @@ import type {
   QuadrupleResult,
   CompetitionResult,
   PlayerAward,
-  DraftSlot,
 } from '../types/game'
 import { calculateSquadStrength } from './ovr'
 import { generateHeadline } from './narrative'
@@ -401,7 +400,6 @@ function simulateKnockout(
   rng: () => number,
 ): { result: CompetitionResult; rounds: { name: string; opponent: string; scoreline: string; won: boolean }[] } {
   const roundResults: { name: string; opponent: string; scoreline: string; won: boolean }[] = []
-  let won = false
   let lastScoreline = ''
   let lastOpponent = ''
 
@@ -419,7 +417,6 @@ function simulateKnockout(
     }
     lastScoreline = scoreline
     lastOpponent = oppName
-    won = true
   }
 
   const finalRound = roundResults[roundResults.length - 1]
@@ -526,7 +523,7 @@ function generateAwards(squad: Player[], rng: () => number): PlayerAward[] {
   }
 
   // Player of the Season: weighted by tier across all players
-  const potyWeights = squad.map((p) => {
+  const potyWeights: number[] = squad.map((p) => {
     if (p.tier === 'star') return 60
     if (p.tier === 'gold') return 30
     if (p.tier === 'silver') return 10

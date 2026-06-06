@@ -60,7 +60,7 @@ export function generateSeasonCommentary(
 export function generateHeadline(
   trophies: number,
   goalsFor: number,
-  goalsAgainst: number,
+  _goalsAgainst: number,
   position: number,
 ): { headline: string; tagline: string } {
   // Trophy prefix
@@ -85,16 +85,10 @@ export function generateHeadline(
     modifier = 'DEFENSIVE GRIND'
   }
 
-  let defenseMod = ''
-  if (goalsAgainst < 25) {
-    defenseMod = 'FORTRESS DEFENCE'
-  } else if (goalsAgainst < 40) {
-    defenseMod = 'SOLID AT THE BACK'
-  } else if (goalsAgainst < 60) {
-    defenseMod = 'LEAKY BACKLINE'
-  } else {
-    defenseMod = 'GOAL SHY DEFENCE'
-  }
+  // Defense modifier (for future headline variants)
+  // const defenseMod = goalsAgainst < 25 ? 'FORTRESS DEFENCE' :
+  //   goalsAgainst < 40 ? 'SOLID AT THE BACK' :
+  //   goalsAgainst < 60 ? 'LEAKY BACKLINE' : 'GOAL SHY DEFENCE'
 
   let positionMod = ''
   if (position === 1) {
