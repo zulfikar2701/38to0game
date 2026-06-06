@@ -110,6 +110,7 @@ interface GameState {
   usedPlayerIds: Set<string>
   currentSlotIndex: number | null
   currentPack: Card[]
+  slotPacks: Record<number, Card[]>  // cached packs per slot
   simulationResult: SimulationResult | null
   quadrupleResult: QuadrupleResult | null
   revealIndex: number
@@ -136,6 +137,7 @@ const initialState = {
   usedPlayerIds: new Set<string>(),
   currentSlotIndex: null as number | null,
   currentPack: [] as Card[],
+  slotPacks: {} as Record<number, Card[]>,
   simulationResult: null as SimulationResult | null,
   quadrupleResult: null as QuadrupleResult | null,
   revealIndex: 0,
@@ -156,6 +158,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       usedPlayerIds: new Set(),
       currentSlotIndex: null,
       currentPack: [],
+      slotPacks: {},
       simulationResult: null,
       quadrupleResult: null,
       revealIndex: 0,
@@ -173,18 +176,32 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   openSlotPicker: (slotIndex: number) => {
-    const { formation, eraPlayers, usedPlayerIds } = get()
+    const { formation, eraPlayers, usedPlayerIds, slotPacks } = get()
     const slot = formation[slotIndex]
     if (!slot || slot.player !== null) return
     log.flow(`openSlotPicker(${slotIndex}) → ${slot.label} (${slot.role})`)
+
+    // Use cached pack if available
+    const cached = slotPacks[slotIndex]
+    if (cached && cached.length > 0) {
+      set({ currentSlotIndex: slotIndex, currentPack: cached })
+      log.draft(slot.label, cached)
+      return
+    }
+
+    // Generate and cache new pack
     const availablePlayers = eraPlayers.filter((p) => !usedPlayerIds.has(p.id))
     const pack = generatePack(slot, availablePlayers)
-    set({ currentSlotIndex: slotIndex, currentPack: pack })
+    set({
+      currentSlotIndex: slotIndex,
+      currentPack: pack,
+      slotPacks: { ...slotPacks, [slotIndex]: pack },
+    })
     log.draft(slot.label, pack)
   },
 
   pickCard: (cardIndex: number) => {
-    const { currentSlotIndex, currentPack, formation, usedPlayerIds } = get()
+    const { currentSlotIndex, currentPack, formation, usedPlayerIds, slotPacks } = get()
     if (currentSlotIndex === null) return
     const card = currentPack[cardIndex]
     if (!card) return
@@ -198,6 +215,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newUsed = new Set(usedPlayerIds)
     newUsed.add(card.player.id)
 
+    // Clear cached packs for all unfilled slots (prevents showing picked player in other packs)
+    const newSlotPacks = { ...slotPacks }
+    delete newSlotPacks[currentSlotIndex]
+    newFormation.forEach((s, i) => {
+      if (s.player === null) delete newSlotPacks[i]
+    })
+
     const allFilled = newFormation.every((s) => s.player !== null)
 
     set({
@@ -205,6 +229,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       usedPlayerIds: newUsed,
       currentSlotIndex: null,
       currentPack: [],
+      slotPacks: newSlotPacks,
       phase: allFilled ? 'confirming' : 'drafting',
     })
 
@@ -235,7 +260,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   rerollSlot: (slotIndex: number) => {
-    const { formation, eraPlayers, usedPlayerIds } = get()
+    const { formation, eraPlayers, usedPlayerIds, slotPacks } = get()
     const slot = formation[slotIndex]
     if (!slot || !slot.player) return
 
@@ -250,12 +275,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       i === slotIndex ? { ...s, player: null } : s,
     ) as Formation
 
-    set({ formation: clearedFormation, usedPlayerIds: newUsed })
-
-    // Open picker for this slot
+    // Generate new pack and cache it
     const availablePlayers = eraPlayers.filter((p) => !newUsed.has(p.id))
     const pack = generatePack(slot, availablePlayers)
-    set({ currentSlotIndex: slotIndex, currentPack: pack })
+
+    // Clear other slot caches too (since re-rolled player is back in pool)
+    const newSlotPacks: Record<number, Card[]> = { [slotIndex]: pack }
+
+    set({
+      formation: clearedFormation,
+      usedPlayerIds: newUsed,
+      currentSlotIndex: slotIndex,
+      currentPack: pack,
+      slotPacks: newSlotPacks,
+    })
     log.draft(slot.label, pack)
   },
 

@@ -16,6 +16,20 @@ const TIER_GRADIENTS: Record<Tier, string> = {
   star: 'from-[#6B21A8] to-[#A855F7]',
 }
 
+const TIER_TEXT: Record<Tier, string> = {
+  bronze: 'text-white',
+  silver: 'text-gray-900',
+  gold: 'text-gray-900',
+  star: 'text-white',
+}
+
+const TIER_TEXT_MUTED: Record<Tier, string> = {
+  bronze: 'text-white/60',
+  silver: 'text-gray-700',
+  gold: 'text-gray-700',
+  star: 'text-white/60',
+}
+
 export function PlayerCard({ player, tier, onClick, selected, size = 'md' }: PlayerCardProps) {
   const colors = player.clubColors
   const sizeClasses =
@@ -48,30 +62,30 @@ export function PlayerCard({ player, tier, onClick, selected, size = 'md' }: Pla
       </div>
 
       {/* Flag + Team */}
-      <div className="flex items-center gap-1 text-white/90 shrink-0">
+      <div className={`flex items-center gap-1 ${TIER_TEXT_MUTED[tier]} shrink-0`}>
         <span className="text-xs">{player.flag || ''}</span>
         <span className="font-semibold truncate max-w-[80px]">{player.club}</span>
       </div>
 
       {/* Player name */}
-      <div className="text-white font-bold text-center leading-tight px-1 truncate max-w-full">
+      <div className={`${TIER_TEXT[tier]} font-bold text-center leading-tight px-1 truncate max-w-full`}>
         {player.name}
       </div>
 
       {/* Season */}
-      <div className="text-white/60 text-center">{player.season}</div>
+      <div className={`${TIER_TEXT_MUTED[tier]} text-center`}>{player.season}</div>
 
       {/* OVR */}
-      <div className="text-white font-black text-4xl leading-none">
+      <div className={`${TIER_TEXT[tier]} font-black text-4xl leading-none`}>
         {player.ovr}
       </div>
 
       {/* Position + Role badges */}
       <div className="flex gap-1 shrink-0">
-        <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${tier === 'silver' || tier === 'gold' ? 'bg-black/20 text-gray-900' : 'bg-white/20 text-white'}`}>
           {player.position}
         </span>
-        <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${tier === 'silver' || tier === 'gold' ? 'bg-black/20 text-gray-900' : 'bg-white/20 text-white'}`}>
           {player.role}
         </span>
       </div>

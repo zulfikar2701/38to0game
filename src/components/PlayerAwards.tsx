@@ -36,8 +36,9 @@ export function PlayerAwards({ awards }: PlayerAwardsProps) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.15 }}
             className={[
-              'rounded-xl p-4 text-white text-center',
+              'rounded-xl p-4 text-center',
               TIER_BG[award.player.tier],
+              award.player.tier === 'silver' || award.player.tier === 'gold' ? 'text-gray-900' : 'text-white',
               'shadow-lg border border-white/10',
             ].join(' ')}
           >
