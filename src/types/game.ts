@@ -2,6 +2,8 @@ export type Position = 'GK' | 'DEF' | 'MID' | 'FWD'
 
 export type Role = 'GK' | 'CB' | 'FB' | 'CM' | 'W' | 'ST'
 
+export type Tier = 'bronze' | 'silver' | 'gold' | 'star'
+
 export interface GKStats {
   saves: number
   cleanSheets: number
@@ -48,21 +50,21 @@ export interface Player {
   stats: PositionStats
   eraAdjusted: PositionStats
   clubColors: ClubColors
+  ovr: number
+  tier: Tier
+  nation: string
+  flag: string
 }
 
-export interface SquadSlot {
+export interface DraftSlot {
+  index: number
   position: Position
   role: Role
+  label: string
   player: Player | null
 }
 
-// 4-3-3 formation: 1 GK + 4 DEF + 3 MID + 3 FWD = 11 players
-export type Formation = [
-  SquadSlot, // GK
-  SquadSlot, SquadSlot, SquadSlot, SquadSlot, // DEF
-  SquadSlot, SquadSlot, SquadSlot, // MID
-  SquadSlot, SquadSlot, SquadSlot, // FWD
-]
+export type Formation = DraftSlot[]
 
 export interface MatchResult {
   gameweek: number
@@ -103,6 +105,36 @@ export interface PlayerSeasonStat {
   rating: number
 }
 
+export interface Card {
+  player: Player
+  tier: Tier
+}
+
+export interface CompetitionResult {
+  name: string
+  won: boolean
+  roundReached: string
+  finalOpponent: string | null
+  scoreline: string | null
+}
+
+export interface PlayerAward {
+  type: 'topScorer' | 'mostAssists' | 'playerOfSeason'
+  player: Player
+  value: number
+}
+
+export interface QuadrupleResult {
+  communityShield: CompetitionResult
+  premierLeague: CompetitionResult
+  faCup: CompetitionResult
+  championsLeague: CompetitionResult
+  trophies: number
+  headline: string
+  tagline: string
+  awards: PlayerAward[]
+}
+
 export interface SimulationResult {
   squadStrength: number
   finalPoints: number
@@ -115,13 +147,17 @@ export interface SimulationResult {
   verdict: string
   squad: Player[]
   playerStats: PlayerSeasonStat[]
+  quadruple: QuadrupleResult
 }
 
 export type GamePhase =
   | 'menu'
+  | 'formation'
   | 'drafting'
   | 'confirming'
   | 'simulating'
+  | 'newspaper'
+  | 'revealing'
   | 'results'
 
 export type GameMode = 'classic' | 'blind'
