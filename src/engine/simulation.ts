@@ -11,6 +11,7 @@ import type {
 } from '../types/game'
 import { calculateSquadStrength } from './ovr'
 import { generateHeadline } from './narrative'
+import { log } from '../lib/logger'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -240,6 +241,7 @@ function simulatePremierLeague(
     const result: 'W' | 'D' | 'L' =
       userGoals > oppGoals ? 'W' : userGoals === oppGoals ? 'D' : 'L'
     const points = result === 'W' ? 3 : result === 'D' ? 1 : 0
+    log.match(fixture.opponent.name, userGoals, oppGoals, result)
     matches.push({
       gameweek,
       opponent: fixture.opponent.name,
@@ -555,6 +557,13 @@ export function runQuadruple(
   const rng = seededRandom(seed ?? Math.floor(Math.random() * 1000000))
   const squad = formation.map((s) => s.player).filter(Boolean) as Player[]
   const userScores = getSquadScores(squad)
+
+  log.sim('Squad Scores', {
+    attack: Math.round(userScores.attack),
+    midfield: Math.round(userScores.midfield),
+    defense: Math.round(userScores.defense),
+    goalkeeping: Math.round(userScores.goalkeeping),
+  })
 
   const cs = simulateCommunityShield(userScores, rng)
   const pl = simulatePremierLeague(userScores, rng)
